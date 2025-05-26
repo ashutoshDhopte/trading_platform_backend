@@ -1,4 +1,4 @@
-package util
+package api
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func InitController() {
+func init() {
 
 	apiMux := registerRoutes()
 

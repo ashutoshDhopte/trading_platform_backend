@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:15-alpine # Using version 15, alpine for smaller size
+    restart: always
+    environment:
+      POSTGRES_USER: trading_user
+      POSTGRES_PASSWORD: trading_password
+      POSTGRES_DB: trading_db
+    ports:
+      - "5432:5432" # Exposes Postgres to your host machine on port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persists data
+
+volumes:
+  postgres_data: # Defines the named volume

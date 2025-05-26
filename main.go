@@ -1,9 +1,9 @@
 package main
 
 import (
-	"trading_platform_backend/util"
+	_ "trading_platform_backend/api"
+	_ "trading_platform_backend/db"
 )
 
 func main() {
-	util.InitController()
 }
