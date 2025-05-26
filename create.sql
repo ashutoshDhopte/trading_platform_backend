@@ -1,0 +1,108 @@
+
+-- Table for Users
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL DEFAULT 'default_user', -- For V1, we can have a default user
+    email TEXT UNIQUE,                                  -- Optional for V1, can be NULL
+    hashed_password TEXT,                               -- Not used in V1
+    salt TEXT,                                          -- Not used in V1
+    cash_balance_cents BIGINT NOT NULL DEFAULT 0, -- e.g., $10,000.00 stored as 1,000,000 cents
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for Mock Stocks
+CREATE TABLE IF NOT EXISTS stocks (
+    stock_id SERIAL PRIMARY KEY,
+    ticker TEXT UNIQUE NOT NULL,                        -- e.g., "FAKE_AAPL"
+    name TEXT NOT NULL,                                 -- e.g., "Fake Apple Inc."
+    opening_price_cents BIGINT,                         -- For V2: daily opening price
+    min_price_generator_cents BIGINT,                   -- For V2: lower bound for dynamic price generator
+    max_price_generator_cents BIGINT,                   -- For V2: upper bound for dynamic price generator
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table for User's Portfolio Holdings (Current Stock Positions)
+CREATE TABLE IF NOT EXISTS holdings (
+    holding_id SERIAL PRIMARY KEY,                      -- Surrogate key
+    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    stock_id INTEGER NOT NULL REFERENCES stocks(stock_id) ON DELETE RESTRICT,
+    quantity INTEGER NOT NULL CHECK (quantity >= 0),
+    average_cost_per_share_cents BIGINT NOT NULL DEFAULT 0, -- Crucial for V2 P&L. For V1, can be set to buy price.
+    created_at TIMESTAMPTZ DEFAULT NOW(),              -- When the holding was first initiated
+    updated_at TIMESTAMPTZ DEFAULT NOW(),              -- When quantity or avg_cost was last changed
+    CONSTRAINT unique_user_stock_holding UNIQUE (user_id, stock_id) -- Ensures one holding record per user per stock
+);
+
+-- Table for Transaction History (Log of all executed buy/sell orders)
+CREATE TABLE IF NOT EXISTS orders (
+    order_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    stock_id INTEGER NOT NULL REFERENCES stocks(stock_id) ON DELETE RESTRICT,
+    trade_type TEXT NOT NULL,
+    order_status TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    price_per_share_cents_at_execution BIGINT NOT NULL,
+    total_order_value_cents BIGINT NOT NULL,      -- Calculated: quantity * price_per_share_cents_at_execution
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    notes TEXT                                          -- Optional, for any specific details
+);
+
+-- Optional: Indexes for frequently queried columns (PostgreSQL automatically creates indexes for PRIMARY KEY and UNIQUE constraints)
+-- Consider adding indexes on foreign keys and columns used in WHERE clauses or ORDER BY for performance as your data grows.
+-- Example:
+-- CREATE INDEX IF NOT EXISTS idx_portfolio_holdings_user_id ON portfolio_holdings(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_portfolio_holdings_stock_id ON portfolio_holdings(stock_id);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_stock_id ON transactions(stock_id);
+-- CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp DESC);
+
+
+-- Initial Data for V1 MVP
+
+-- Insert a default user for the MVP
+INSERT INTO users (username, email, cash_balance_cents)
+VALUES ('default_user', 'user@example.com', 1000000)
+    ON CONFLICT (username) DO NOTHING;
+
+-- Insert some mock stocks for V1
+INSERT INTO stocks (ticker, name, opening_price_cents, min_price_generator_cents, max_price_generator_cents)
+VALUES
+    ('AAPL', 'Apple Inc.', 17500, 17000, 18000),    -- $175.50
+    ('GOOGL', 'Alphabet Inc.', 280000, 275000, 285000), -- $2800.25
+    ('MSFT', 'Microsoft Corp.', 33000, 32500, 33500),   -- $330.75
+    ('AMZN', 'Amazon.com Inc.', 330045, 325000, 345000),   -- $3300.45
+    ('TSLA', 'Tesla Inc.', 24800, 24000, 26000)      -- $250.00
+    ON CONFLICT (ticker) DO NOTHING;
+
+-- Function to automatically update 'updated_at' columns
+CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Triggers for 'users' table
+CREATE TRIGGER set_timestamp_users
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_set_timestamp();
+
+-- Triggers for 'stocks' table
+CREATE TRIGGER set_timestamp_stocks
+    BEFORE UPDATE ON stocks
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_set_timestamp();
+
+-- Triggers for 'portfolio_holdings' table
+CREATE TRIGGER set_timestamp_holdings
+    BEFORE UPDATE ON holdings
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_set_timestamp();
+
+-- Note: `transactions` table typically doesn't have an `updated_at` as transactions are immutable once created.
+-- Its `timestamp` field records the creation time.
+
