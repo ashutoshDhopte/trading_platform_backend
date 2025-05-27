@@ -52,6 +52,7 @@ func RecoverMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rec := recover(); rec != nil {
+				fmt.Println("Recovered from panic:", rec)
 				response := getErrorApiResponse("Internal Server Error")
 				json.NewEncoder(w).Encode(response)
 			}

@@ -10,9 +10,6 @@ import (
 
 func GetDashboard(w http.ResponseWriter, r *http.Request) {
 
-	d := 4
-	d = d / (d - d)
-
 	userIdStr := r.URL.Query().Get("userId")
 	var response model.ApiResponse
 	if userIdStr == "" {
