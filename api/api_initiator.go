@@ -34,7 +34,7 @@ func init() {
 func registerRoutes() *http.ServeMux {
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/", homeHandler)
-	apiMux.HandleFunc("/test", testHandler)
+	apiMux.HandleFunc("/dashboard", RecoverMiddleware(GetDashboard))
 	// Add more handlers here
 
 	return apiMux
@@ -48,10 +48,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// Handler for the test route
-func testHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	// A simple JSON response
-	response := map[string]string{"data": "This is the test api"}
-	json.NewEncoder(w).Encode(response)
+func RecoverMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				response := getErrorApiResponse("Internal Server Error")
+				json.NewEncoder(w).Encode(response)
+			}
+		}()
+		next(w, r)
+	}
 }
