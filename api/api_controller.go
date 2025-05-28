@@ -10,8 +10,15 @@ import (
 
 func GetDashboard(w http.ResponseWriter, r *http.Request) {
 
-	userIdStr := r.URL.Query().Get("userId")
 	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}()
+
+	userIdStr := r.URL.Query().Get("userId")
 	if userIdStr == "" {
 		response = getErrorApiResponse("userId is required")
 	} else {
@@ -23,24 +30,61 @@ func GetDashboard(w http.ResponseWriter, r *http.Request) {
 			response = getErrorApiResponse("userId is required")
 		}
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
 }
 
 func GetUserByEmailAndPassword(w http.ResponseWriter, r *http.Request) {
 
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}()
+
 	email := r.URL.Query().Get("email")
 	password := r.URL.Query().Get("password")
 
-	var response model.ApiResponse
 	if email == "" || password == "" {
 		response = getErrorApiResponse("email and password are required")
 	} else {
 		userModel := service.GetUserByEmailAndPassword(email, password)
 		response = getSuccessApiResponse(userModel)
 	}
+}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+func BuyStocks(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}()
+
+	type TradeRequest struct {
+		UserID   int64  `json:"userId"`
+		Ticker   string `json:"ticker"`
+		Quantity int64  `json:"quantity"`
+	}
+
+	var payload TradeRequest
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	if payload.UserID == 0 || payload.Quantity == 0 || payload.Ticker == "" {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	result := service.BuyStocks(payload.UserID, payload.Ticker, payload.Quantity)
+	if result == "" {
+		response = getSuccessApiResponse("")
+	} else {
+		response = getErrorApiResponse(result)
+	}
 }

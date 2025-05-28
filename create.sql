@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS orders (
     trade_type TEXT NOT NULL,
     order_status TEXT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
-    price_per_share_cents_at_execution BIGINT NOT NULL,
+    price_per_share_cents BIGINT NOT NULL,
     total_order_value_cents BIGINT NOT NULL,      -- Calculated: quantity * price_per_share_cents_at_execution
     created_at TIMESTAMPTZ DEFAULT NOW(),
     notes TEXT                                          -- Optional, for any specific details
