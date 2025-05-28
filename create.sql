@@ -76,6 +76,11 @@ VALUES
     ('TSLA', 'Tesla Inc.', 24800, 24000, 26000)      -- $250.00
     ON CONFLICT (ticker) DO NOTHING;
 
+INSERT INTO holdings (user_id, stock_id, quantity, average_cost_per_share_cents)
+VALUES
+    (1, 1, 200, 17400),
+    (1, 2, 900, 276000);
+
 -- Function to automatically update 'updated_at' columns
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
 RETURNS TRIGGER AS $$

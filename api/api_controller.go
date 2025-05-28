@@ -27,3 +27,20 @@ func GetDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
+
+func GetUserByEmailAndPassword(w http.ResponseWriter, r *http.Request) {
+
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
+
+	var response model.ApiResponse
+	if email == "" || password == "" {
+		response = getErrorApiResponse("email and password are required")
+	} else {
+		userModel := service.GetUserByEmailAndPassword(email, password)
+		response = getSuccessApiResponse(userModel)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}

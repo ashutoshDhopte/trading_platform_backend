@@ -8,16 +8,6 @@ import (
 
 func GetDashboardData(userId int64) model.DashboardModel {
 
-	user := db.GetUserById(userId)
-
-	userModel := model.UserModel{
-		UserID:             userId,
-		Username:           user.Username,
-		Email:              user.Email,
-		CashBalanceDollars: util.ConvertCentsToDollars(user.CashBalanceCents),
-		CreatedAt:          util.GetDateTimeString(user.CreatedAt),
-	}
-
 	stocks := db.GetAllStocks()
 	var stockModels []model.StockModel
 	stockIdTickerMap := make(map[int64]string)
@@ -48,7 +38,6 @@ func GetDashboardData(userId int64) model.DashboardModel {
 	}
 
 	return model.DashboardModel{
-		User:     userModel,
 		Stocks:   stockModels,
 		Holdings: holdingModels,
 	}

@@ -35,6 +35,7 @@ func registerRoutes() *http.ServeMux {
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/", homeHandler)
 	apiMux.HandleFunc("/dashboard", RecoverMiddleware(GetDashboard))
+	apiMux.HandleFunc("/user", RecoverMiddleware(GetUserByEmailAndPassword))
 	// Add more handlers here
 
 	return apiMux

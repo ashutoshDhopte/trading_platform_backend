@@ -10,7 +10,7 @@ func GetAllStocks() []orm.Stocks {
 
 func GetUserByEmailAndPassword(email string, password string) orm.Users {
 	var user orm.Users
-	DB.Where("email = ? and hashedPassword = ?", email, password).First(&user)
+	DB.Where("email = ? and hashed_password = ?", email, password).First(&user)
 	return user
 }
 
