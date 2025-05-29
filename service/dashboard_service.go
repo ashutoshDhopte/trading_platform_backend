@@ -1,7 +1,9 @@
 package service
 
 import (
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"trading_platform_backend/db"
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
@@ -56,43 +58,69 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 	//update the values
 	//save the holding
 
-	stock := db.GetStockByTicker(ticker)
-	if stock.StockID == 0 {
-		return "Stock " + ticker + " not found!"
-	}
+	err := db.DB.Transaction(func(tx *gorm.DB) error {
 
-	order := orm.Orders{
-		UserID:               userId,
-		StockID:              stock.StockID,
-		TradeType:            util.BUY,
-		OrderStatus:          util.EXECUTED,
-		Quantity:             quantity,
-		PricePerShareCents:   stock.OpeningPriceCents,
-		TotalOrderValueCents: quantity * stock.OpeningPriceCents,
-	}
-
-	if err := db.DB.Create(&order).Error; err != nil {
-		fmt.Println("Failed to save order:", err)
-		return "Failed to save order!"
-	}
-
-	holding := db.GetHoldingByUserIdAndStockId(userId, stock.StockID)
-	if holding.HoldingID == 0 {
-		holding = orm.Holdings{
-			StockID: stock.StockID,
-			UserID:  userId,
+		stock := db.GetStockByTicker(ticker)
+		if stock.StockID == 0 {
+			return errors.New("stock " + ticker + " not found")
 		}
-	}
 
-	oldTotal := holding.AverageCostPerShareCents * holding.Quantity
-	newQuantity := holding.Quantity + quantity
-	holding.AverageCostPerShareCents = (oldTotal + order.TotalOrderValueCents) / newQuantity
+		user := db.GetUserById(userId)
+		if user.UserID == 0 {
+			return errors.New("user does not exist")
+		}
 
-	holding.Quantity += quantity
+		totalOrderValueCents := quantity * stock.OpeningPriceCents
+		if totalOrderValueCents > user.CashBalanceCents {
+			return errors.New("user don't have enough balance")
+		}
 
-	if err := db.DB.Save(&holding).Error; err != nil {
-		fmt.Println("Failed to save holding:", err)
-		return "Failed to save order!"
+		order := orm.Orders{
+			UserID:               userId,
+			StockID:              stock.StockID,
+			TradeType:            util.BUY,
+			OrderStatus:          util.EXECUTED,
+			Quantity:             quantity,
+			PricePerShareCents:   stock.OpeningPriceCents,
+			TotalOrderValueCents: quantity * stock.OpeningPriceCents,
+		}
+
+		if err := db.DB.Create(&order).Error; err != nil {
+			fmt.Println("Failed to save order:", err)
+			return errors.New("failed to save order")
+		}
+
+		holding := db.GetHoldingByUserIdAndStockId(userId, stock.StockID)
+		if holding.HoldingID == 0 {
+			holding = orm.Holdings{
+				StockID: stock.StockID,
+				UserID:  userId,
+			}
+		}
+
+		oldTotal := holding.AverageCostPerShareCents * holding.Quantity
+		newQuantity := holding.Quantity + quantity
+		holding.AverageCostPerShareCents = (oldTotal + order.TotalOrderValueCents) / newQuantity
+
+		holding.Quantity += quantity
+
+		if err := db.DB.Save(&holding).Error; err != nil {
+			fmt.Println("Failed to save holding:", err)
+			return errors.New("failed to save holding")
+		}
+
+		user.CashBalanceCents -= order.TotalOrderValueCents
+
+		if err := db.DB.Save(&user).Error; err != nil {
+			fmt.Println("Failed to save account data:", err)
+			return errors.New("failed to save account data")
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return "Failed to buy stock, " + err.Error()
 	}
 
 	return ""
