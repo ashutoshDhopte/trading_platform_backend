@@ -8,9 +8,9 @@ type Stocks struct {
 	StockID                int64 `gorm:"primaryKey"`
 	Ticker                 string
 	Name                   string
-	OpeningPriceCents      int64
-	MinPriceGeneratorCents int64
-	MaxPriceGeneratorCents int64
+	OpeningPriceCents      float64
+	MinPriceGeneratorCents float64
+	MaxPriceGeneratorCents float64
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 }

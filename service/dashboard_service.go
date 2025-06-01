@@ -12,9 +12,14 @@ import (
 
 func GetDashboardData(userId int64) model.DashboardModel {
 
+	user := db.GetUserById(userId)
+	if user.UserID == 0 {
+		return model.DashboardModel{}
+	}
+
 	stocks := db.GetAllStocks()
 	var stockModels []model.StockModel
-	stockIdTickerMap := make(map[int64]string)
+	stockMap := make(map[int64]orm.Stocks)
 	for _, stock := range stocks {
 		stockModels = append(stockModels, model.StockModel{
 			StockID:             stock.StockID,
@@ -25,25 +30,52 @@ func GetDashboardData(userId int64) model.DashboardModel {
 			ChangedPercent:      0,
 			UpdatedAt:           util.GetDateTimeString(stock.UpdatedAt),
 		})
-		stockIdTickerMap[stock.StockID] = stock.Ticker
+		stockMap[stock.StockID] = stock
 	}
 
 	holdings := db.GetActiveHoldingsByUserID(userId)
 	var holdingModels []model.HoldingModel
+	var totalHoldingValueCents float64
+	var totalPnlCents float64
 	for _, holding := range holdings {
+
+		var pnl float64
+		if holding.Quantity > 0 {
+			pnl = stockMap[holding.StockID].OpeningPriceCents - holding.AverageCostPerShareCents
+		} else if holding.Quantity < 0 {
+			pnl = holding.AverageCostPerShareCents - stockMap[holding.StockID].OpeningPriceCents
+		}
+
+		totalPnlCents += pnl
+
+		holdingValueCents := float64(holding.Quantity) * holding.AverageCostPerShareCents
+		totalHoldingValueCents += holdingValueCents
+
 		holdingModels = append(holdingModels, model.HoldingModel{
 			HoldingID:                  holding.HoldingID,
-			StockTicker:                stockIdTickerMap[holding.StockID],
+			StockTicker:                stockMap[holding.StockID].Ticker,
 			Quantity:                   holding.Quantity,
 			AverageCostPerShareDollars: util.ConvertCentsToDollars(holding.AverageCostPerShareCents),
-			TotalValueDollars:          util.ConvertCentsToDollars(holding.Quantity * holding.AverageCostPerShareCents),
+			TotalValueDollars:          util.ConvertCentsToDollars(holdingValueCents),
 			UpdatedAt:                  util.GetDateTimeString(holding.UpdatedAt),
+			PnLDollars:                 util.ConvertCentsToDollars(pnl),
+			PnLPercent:                 (pnl / holdingValueCents) * 100,
 		})
 	}
 
+	userModel := model.UserModel{
+		UserID:             user.UserID,
+		CashBalanceDollars: util.ConvertCentsToDollars(user.CashBalanceCents),
+	}
+
 	return model.DashboardModel{
-		Stocks:   stockModels,
-		Holdings: holdingModels,
+		User:                     userModel,
+		Stocks:                   stockModels,
+		Holdings:                 holdingModels,
+		TotalHoldingValueDollars: util.ConvertCentsToDollars(totalHoldingValueCents),
+		PortfolioValueDollars:    util.ConvertCentsToDollars(user.CashBalanceCents + totalHoldingValueCents),
+		TotalPnLDollars:          util.ConvertCentsToDollars(totalPnlCents),
+		TotalPnLPercent:          (totalPnlCents / totalHoldingValueCents) * 100,
 	}
 }
 
@@ -51,12 +83,15 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 
 	//get stock using ticker
 	//if stock is not present, err
+	//fetch user
+	//if balance is less than total order value, err
 	//create new order
 	//save the order
 	//load the holding using ticker and userid
 	//if not exist, create new holding
 	//update the values
 	//save the holding
+	//update the user balance
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 
@@ -70,7 +105,7 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 			return errors.New("user does not exist")
 		}
 
-		totalOrderValueCents := quantity * stock.OpeningPriceCents
+		totalOrderValueCents := float64(quantity) * stock.OpeningPriceCents
 		if totalOrderValueCents > user.CashBalanceCents {
 			return errors.New("user don't have enough balance")
 		}
@@ -78,11 +113,11 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 		order := orm.Orders{
 			UserID:               userId,
 			StockID:              stock.StockID,
-			TradeType:            util.BUY,
-			OrderStatus:          util.EXECUTED,
+			TradeType:            util.TRADE_TYPE_BUY,
+			OrderStatus:          util.ORDER_STATUS_EXECUTED,
 			Quantity:             quantity,
 			PricePerShareCents:   stock.OpeningPriceCents,
-			TotalOrderValueCents: quantity * stock.OpeningPriceCents,
+			TotalOrderValueCents: float64(quantity) * stock.OpeningPriceCents,
 		}
 
 		if err := db.DB.Create(&order).Error; err != nil {
@@ -98,9 +133,9 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 			}
 		}
 
-		oldTotal := holding.AverageCostPerShareCents * holding.Quantity
+		oldTotal := holding.AverageCostPerShareCents * float64(holding.Quantity)
 		newQuantity := holding.Quantity + quantity
-		holding.AverageCostPerShareCents = (oldTotal + order.TotalOrderValueCents) / newQuantity
+		holding.AverageCostPerShareCents = (oldTotal + order.TotalOrderValueCents) / float64(newQuantity)
 
 		holding.Quantity += quantity
 

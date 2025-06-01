@@ -9,7 +9,7 @@ type Holdings struct {
 	UserID                   int64
 	StockID                  int64
 	Quantity                 int64
-	AverageCostPerShareCents int64
+	AverageCostPerShareCents float64
 	CreatedAt                time.Time
 	UpdatedAt                time.Time
 }

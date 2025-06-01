@@ -10,7 +10,7 @@ type Users struct {
 	Email            string
 	HashedPassword   string
 	Salt             string
-	CashBalanceCents int64
+	CashBalanceCents float64
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
