@@ -1,14 +1,14 @@
 package util
 
 const (
-	TRADE_TYPE_BUY  = "TRADE_TYPE_BUY"
-	TRADE_TYPE_SELL = "SELL"
+	TradeTypeBuy  = "BUY"
+	TradeTypeSell = "SELL"
 )
 
 const (
-	ORDER_STATUS_EXECUTED  = "ORDER_STATUS_EXECUTED"
-	ORDER_STATUS_COMPLETED = "COMPLETED"
-	ORDER_STATUS_PENDING   = "PENDING"
-	ORDER_STATUS_CANCELED  = "CANCELED"
-	ORDER_STATUS_FAILED    = "FAILED"
+	OrderStatusExecuted  = "EXECUTED"
+	OrderStatusCompleted = "COMPLETED"
+	OrderStatusPending   = "PENDING"
+	OrderStatusCanceled  = "CANCELED"
+	OrderStatusFailed    = "FAILED"
 )

@@ -7,5 +7,5 @@ type DashboardModel struct {
 	TotalHoldingValueDollars float64
 	PortfolioValueDollars    float64
 	TotalPnLDollars          float64
-	TotalPnLPercent          float64
+	TotalReturnPercent       float64
 }

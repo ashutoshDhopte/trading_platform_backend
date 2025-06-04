@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"trading_platform_backend/model"
@@ -15,7 +16,11 @@ func GetDashboard(w http.ResponseWriter, r *http.Request) {
 	//LIFO
 	defer func() {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
 	}()
 
 	userIdStr := r.URL.Query().Get("userId")
@@ -39,7 +44,11 @@ func GetUserByEmailAndPassword(w http.ResponseWriter, r *http.Request) {
 	//LIFO
 	defer func() {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
 	}()
 
 	email := r.URL.Query().Get("email")
@@ -60,7 +69,11 @@ func BuyStocks(w http.ResponseWriter, r *http.Request) {
 	//LIFO
 	defer func() {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
 	}()
 
 	type TradeRequest struct {
@@ -82,6 +95,46 @@ func BuyStocks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := service.BuyStocks(payload.UserID, payload.Ticker, payload.Quantity)
+	if result == "" {
+		response = getSuccessApiResponse("")
+	} else {
+		response = getErrorApiResponse(result)
+	}
+}
+
+func SellStocks(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	type TradeRequest struct {
+		UserID   int64  `json:"userId"`
+		Ticker   string `json:"ticker"`
+		Quantity int64  `json:"quantity"`
+	}
+
+	var payload TradeRequest
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	if payload.UserID == 0 || payload.Quantity == 0 || payload.Ticker == "" {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	result := service.SellStocks(payload.UserID, payload.Ticker, payload.Quantity)
 	if result == "" {
 		response = getSuccessApiResponse("")
 	} else {

@@ -24,7 +24,7 @@ func GetUserById(userId int64) orm.Users {
 
 func GetActiveHoldingsByUserID(userID int64) []orm.Holdings {
 	var holdings []orm.Holdings
-	DB.Where("user_id = ? and quantity > 0", userID).Find(&holdings)
+	DB.Where("user_id = ? and quantity != 0", userID).Find(&holdings)
 	return holdings
 }
 
