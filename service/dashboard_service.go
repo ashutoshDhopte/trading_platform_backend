@@ -11,8 +11,6 @@ import (
 	"trading_platform_backend/util"
 )
 
-const initialInvestmentCents = 10000000
-
 func GetDashboardData(userId int64) model.DashboardModel {
 
 	user := db.GetUserById(userId)
@@ -68,7 +66,11 @@ func GetDashboardData(userId int64) model.DashboardModel {
 
 	userModel := model.UserModel{
 		UserID:             user.UserID,
+		Username:           user.Username,
+		Email:              user.Email,
 		CashBalanceDollars: util.ConvertCentsToDollars(user.CashBalanceCents),
+		CreatedAt:          util.GetDateTimeString(user.CreatedAt),
+		UpdatedAt:          util.GetDateTimeString(user.UpdatedAt),
 	}
 
 	return model.DashboardModel{
@@ -78,7 +80,7 @@ func GetDashboardData(userId int64) model.DashboardModel {
 		TotalHoldingValueDollars: util.ConvertCentsToDollars(totalHoldingValueCents),
 		PortfolioValueDollars:    util.ConvertCentsToDollars(user.CashBalanceCents + totalHoldingValueCents),
 		TotalPnLDollars:          util.ConvertCentsToDollars(totalPnlCents),
-		TotalReturnPercent:       ((user.CashBalanceCents + totalHoldingValueCents - initialInvestmentCents) / initialInvestmentCents) * 100,
+		TotalReturnPercent:       ((user.CashBalanceCents + totalHoldingValueCents - util.InitialInvestmentCents) / util.InitialInvestmentCents) * 100,
 	}
 }
 

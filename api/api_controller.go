@@ -141,3 +141,72 @@ func SellStocks(w http.ResponseWriter, r *http.Request) {
 		response = getErrorApiResponse(result)
 	}
 }
+
+func LoginUser(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
+
+	if email == "" || password == "" {
+		response = getErrorApiResponse("email and password are required")
+		return
+	}
+
+	result := service.LoginUser(email, password)
+	if result > 0 {
+		response = getSuccessApiResponse(result)
+	} else {
+		response = getErrorApiResponse("user not found")
+	}
+}
+
+func CreateAccount(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
+	verifyPassword := r.URL.Query().Get("verifyPassword")
+
+	if email == "" || password == "" || verifyPassword == "" {
+		response = getErrorApiResponse("email and password are required")
+		return
+	}
+
+	if password != verifyPassword {
+		response = getErrorApiResponse("passwords do not match")
+		return
+	}
+
+	result, err := service.CreateAccount(email, password)
+	if err != nil {
+		fmt.Println(err.Error())
+		response = getErrorApiResponse("failed to create account, " + err.Error())
+	} else if result == 0 {
+		response = getErrorApiResponse("failed to create account")
+	} else {
+		response = getSuccessApiResponse(result)
+	}
+}

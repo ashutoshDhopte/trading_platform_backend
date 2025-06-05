@@ -16,6 +16,12 @@ func GetUserByEmailAndPassword(email string, password string) orm.Users {
 	return user
 }
 
+func GetUserByEmail(email string) orm.Users {
+	var user orm.Users
+	DB.Where("email = ?", email).First(&user)
+	return user
+}
+
 func GetUserById(userId int64) orm.Users {
 	var user orm.Users
 	DB.Find(&user, userId)

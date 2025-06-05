@@ -5,6 +5,8 @@ import (
 	"strconv"
 )
 
+const InitialInvestmentCents = 10000000
+
 func ConvertCentsToDollars(cents float64) float64 {
 
 	dollars := cents / 100.0
