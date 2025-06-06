@@ -15,26 +15,32 @@ func init() {
 
 	_ = godotenv.Load()
 
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
-	dbname := os.Getenv("DB_NAME")
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	sslmode := os.Getenv("DB_SSL_MODE")
+	//user := os.Getenv("DB_USER")
+	//password := os.Getenv("DB_PASSWORD")
+	//dbname := os.Getenv("DB_NAME")
+	//host := os.Getenv("DB_HOST")
+	//port := os.Getenv("DB_PORT")
+	//sslmode := os.Getenv("DB_SSL_MODE")
+	//
+	//if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" {
+	//	fmt.Println("Warning: environment variable(s) are not set")
+	//}
+	//if port == "" {
+	//	port = "5432" // default fallback
+	//}
+	//
+	//connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
+	//	user, password, dbname, host, port, sslmode,
+	//)
 
-	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" {
-		fmt.Println("Warning: environment variable(s) are not set")
-	}
-	if port == "" {
-		port = "5432" // default fallback
-	}
+	dbUrl := os.Getenv("DB_URL")
 
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
-		user, password, dbname, host, port, sslmode,
-	)
+	if dbUrl == "" {
+		fmt.Println("Warning: Database URL is not set")
+	}
 
 	var err error
-	DB, err = gorm.Open(postgres.Open(connStr), &gorm.Config{})
+	DB, err = gorm.Open(postgres.Open(dbUrl), &gorm.Config{})
 	if err != nil {
 		fmt.Printf("Error opening database: %q\n", err)
 	} else {
