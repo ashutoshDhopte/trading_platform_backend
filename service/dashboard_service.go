@@ -36,18 +36,20 @@ func GetDashboardData(userId int64) model.DashboardModel {
 
 	holdings := db.GetActiveHoldingsByUserID(userId)
 	holdingModels := make([]model.HoldingModel, 0)
-	var totalHoldingValueCents float64
-	var totalPnlCents float64
+
+	var totalHoldingValueCents int64
+	var totalPnlCents int64
+
 	for _, holding := range holdings {
 
-		var pnl float64
+		var pnlCents int64
 		if holding.Quantity > 0 {
-			pnl = stockMap[holding.StockID].OpeningPriceCents - holding.AverageCostPerShareCents
+			pnlCents = stockMap[holding.StockID].OpeningPriceCents - holding.AverageCostPerShareCents
 		} else if holding.Quantity < 0 {
-			pnl = holding.AverageCostPerShareCents - stockMap[holding.StockID].OpeningPriceCents
+			pnlCents = holding.AverageCostPerShareCents - stockMap[holding.StockID].OpeningPriceCents
 		}
 
-		holdingValueCents := float64(holding.Quantity) * holding.AverageCostPerShareCents
+		holdingValueCents := holding.Quantity * holding.AverageCostPerShareCents
 
 		holdingModels = append(holdingModels, model.HoldingModel{
 			HoldingID:                  holding.HoldingID,
@@ -56,11 +58,11 @@ func GetDashboardData(userId int64) model.DashboardModel {
 			AverageCostPerShareDollars: util.ConvertCentsToDollars(holding.AverageCostPerShareCents),
 			TotalValueDollars:          util.ConvertCentsToDollars(holdingValueCents),
 			UpdatedAt:                  util.GetDateTimeString(holding.UpdatedAt),
-			PnLDollars:                 util.ConvertCentsToDollars(pnl),
-			PnLPercent:                 (pnl / math.Abs(holdingValueCents)) * 100,
+			PnLDollars:                 util.ConvertCentsToDollars(pnlCents),
+			PnLPercent:                 (float64(pnlCents) / math.Abs(float64(holdingValueCents))) * 100,
 		})
 
-		totalPnlCents += pnl
+		totalPnlCents += pnlCents
 		totalHoldingValueCents += holdingValueCents
 	}
 
@@ -80,7 +82,7 @@ func GetDashboardData(userId int64) model.DashboardModel {
 		TotalHoldingValueDollars: util.ConvertCentsToDollars(totalHoldingValueCents),
 		PortfolioValueDollars:    util.ConvertCentsToDollars(user.CashBalanceCents + totalHoldingValueCents),
 		TotalPnLDollars:          util.ConvertCentsToDollars(totalPnlCents),
-		TotalReturnPercent:       ((user.CashBalanceCents + totalHoldingValueCents - util.InitialInvestmentCents) / util.InitialInvestmentCents) * 100,
+		TotalReturnPercent:       (float64(user.CashBalanceCents+totalHoldingValueCents-util.InitialInvestmentCents) / util.InitialInvestmentCents) * 100,
 	}
 }
 
@@ -110,26 +112,26 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 			return errors.New("user does not exist")
 		}
 
-		totalOrderValueCents := float64(quantity) * stock.OpeningPriceCents
+		totalOrderValueCents := quantity * stock.OpeningPriceCents
 		if totalOrderValueCents > user.CashBalanceCents {
 			return errors.New("user don't have enough balance")
 		}
 
 		holding := db.GetHoldingByUserIdAndStockId(userId, stock.StockID)
 
-		buyQuantity := float64(quantity)
+		buyQuantity := quantity
 		if holding.HoldingID > 0 && holding.Quantity < 0 {
-			buyQuantity = math.Min(math.Abs(float64(holding.Quantity)), float64(quantity)) //to make holding from -ve to 0
+			buyQuantity = int64(math.Min(math.Abs(float64(holding.Quantity)), float64(quantity))) //to make holding from -ve to 0
 		}
 
-		result := buyOrder(tx, &user, stock, int64(buyQuantity), &holding)
+		result := buyOrder(tx, &user, stock, buyQuantity, &holding)
 		if result != "" {
 			return errors.New("Failed to buy stock, " + result)
 		}
 
 		//extra quantity for long trade
-		if quantity > int64(buyQuantity) {
-			longQuantity := quantity - int64(buyQuantity)
+		if quantity > buyQuantity {
+			longQuantity := quantity - buyQuantity
 			result = buyOrder(tx, &user, stock, longQuantity, &holding)
 			if result != "" {
 				return errors.New("Failed to buy stock, " + result)
@@ -155,7 +157,7 @@ func buyOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, ho
 		OrderStatus:          util.OrderStatusExecuted,
 		Quantity:             quantity,
 		PricePerShareCents:   stock.OpeningPriceCents,
-		TotalOrderValueCents: float64(quantity) * stock.OpeningPriceCents,
+		TotalOrderValueCents: quantity * stock.OpeningPriceCents,
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -170,10 +172,10 @@ func buyOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, ho
 		}
 	}
 
-	oldTotal := holding.AverageCostPerShareCents * math.Abs(float64(holding.Quantity))
+	oldTotalCents := holding.AverageCostPerShareCents * int64(math.Abs(float64(holding.Quantity)))
 	holding.Quantity += quantity
 	if holding.Quantity != 0 {
-		holding.AverageCostPerShareCents = math.Abs((oldTotal + order.TotalOrderValueCents) / float64(holding.Quantity))
+		holding.AverageCostPerShareCents = int64(math.Abs(float64((oldTotalCents + order.TotalOrderValueCents) / holding.Quantity)))
 	}
 
 	if err := tx.Save(&holding).Error; err != nil {
@@ -217,25 +219,25 @@ func SellStocks(userId int64, ticker string, quantity int64) string {
 			return errors.New("user does not exist")
 		}
 
-		totalOrderValueCents := float64(quantity) * stock.OpeningPriceCents
+		totalOrderValueCents := quantity * stock.OpeningPriceCents
 		if totalOrderValueCents > user.CashBalanceCents {
 			return errors.New("user don't have enough balance")
 		}
 
 		holding := db.GetHoldingByUserIdAndStockId(user.UserID, stock.StockID)
-		sellQuantity := float64(quantity)
+		sellQuantity := quantity
 		if holding.HoldingID > 0 && holding.Quantity > 0 {
-			sellQuantity = math.Min(math.Abs(float64(holding.Quantity)), float64(quantity)) //to make the holding from +ve to 0
+			sellQuantity = int64(math.Min(math.Abs(float64(holding.Quantity)), float64(quantity))) //to make the holding from +ve to 0
 		}
 
-		result := sellOrder(tx, &user, stock, int64(sellQuantity), &holding)
+		result := sellOrder(tx, &user, stock, sellQuantity, &holding)
 		if result != "" {
 			return errors.New("failed to sell order, " + result)
 		}
 
 		//extra quantity short trade
-		if quantity > int64(sellQuantity) {
-			shortQuantity := quantity - int64(sellQuantity)
+		if quantity > sellQuantity {
+			shortQuantity := quantity - sellQuantity
 			result = sellOrder(tx, &user, stock, shortQuantity, &holding)
 			if result != "" {
 				return errors.New("failed to sell order, " + result)
@@ -261,7 +263,7 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 		OrderStatus:          util.OrderStatusExecuted,
 		Quantity:             quantity,
 		PricePerShareCents:   stock.OpeningPriceCents,
-		TotalOrderValueCents: float64(quantity) * stock.OpeningPriceCents,
+		TotalOrderValueCents: quantity * stock.OpeningPriceCents,
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -276,10 +278,10 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 		}
 	}
 
-	oldTotal := holding.AverageCostPerShareCents * math.Abs(float64(holding.Quantity))
+	oldTotalCents := holding.AverageCostPerShareCents * int64(math.Abs(float64(holding.Quantity)))
 	holding.Quantity -= quantity
 	if holding.Quantity != 0 {
-		holding.AverageCostPerShareCents = math.Abs((oldTotal - order.TotalOrderValueCents) / float64(holding.Quantity))
+		holding.AverageCostPerShareCents = int64(math.Abs(float64((oldTotalCents - order.TotalOrderValueCents) / holding.Quantity)))
 	}
 
 	if err := tx.Save(&holding).Error; err != nil {

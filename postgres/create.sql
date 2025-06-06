@@ -1,5 +1,6 @@
 
 -- Table for Users
+DROP TABLE IF EXISTS users;
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username TEXT UNIQUE NOT NULL DEFAULT 'default_user', -- For V1, we can have a default user
@@ -12,11 +13,13 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- Table for Mock Stocks
+DROP TABLE IF EXISTS stocks;
 CREATE TABLE IF NOT EXISTS stocks (
     stock_id SERIAL PRIMARY KEY,
     ticker TEXT UNIQUE NOT NULL,                        -- e.g., "FAKE_AAPL"
     name TEXT NOT NULL,                                 -- e.g., "Fake Apple Inc."
     opening_price_cents BIGINT,                         -- For V2: daily opening price
+    current_price_cents BIGINT,
     min_price_generator_cents BIGINT,                   -- For V2: lower bound for dynamic price generator
     max_price_generator_cents BIGINT,                   -- For V2: upper bound for dynamic price generator
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -24,6 +27,7 @@ CREATE TABLE IF NOT EXISTS stocks (
 );
 
 -- Table for User's Portfolio Holdings (Current Stock Positions)
+DROP TABLE IF EXISTS holdings;
 CREATE TABLE IF NOT EXISTS holdings (
     holding_id SERIAL PRIMARY KEY,                      -- Surrogate key
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -36,6 +40,7 @@ CREATE TABLE IF NOT EXISTS holdings (
 );
 
 -- Table for Transaction History (Log of all executed buy/sell orders)
+DROP TABLE IF EXISTS orders;
 CREATE TABLE IF NOT EXISTS orders (
     order_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -67,13 +72,13 @@ VALUES ('default_user', 'user@example.com', 10000000)
     ON CONFLICT (username) DO NOTHING;
 
 -- Insert some mock stocks for V1
-INSERT INTO stocks (ticker, name, opening_price_cents, min_price_generator_cents, max_price_generator_cents)
+INSERT INTO stocks (ticker, name, opening_price_cents, current_price_cents, min_price_generator_cents, max_price_generator_cents)
 VALUES
-    ('AAPL', 'Apple Inc.', 15000, 14000, 16000),    -- $175.50
-    ('GOOGL', 'Alphabet Inc.', 25000, 24000, 26000), -- $2800.25
-    ('MSFT', 'Microsoft Corp.', 30000, 29000, 31000),   -- $330.75
-    ('AMZN', 'Amazon.com Inc.', 35000, 34000, 36000),   -- $3300.45
-    ('TSLA', 'Tesla Inc.', 20000, 19000, 21000)      -- $250.00
+    ('AAPL', 'Apple Inc.', 15000, 15000, 14000, 16000),    -- $175.50
+    ('GOOGL', 'Alphabet Inc.', 25000, 25000, 24000, 26000), -- $2800.25
+    ('MSFT', 'Microsoft Corp.', 30000, 30000, 29000, 31000),   -- $330.75
+    ('AMZN', 'Amazon.com Inc.', 35000, 35000, 34000, 36000),   -- $3300.45
+    ('TSLA', 'Tesla Inc.', 20000, 20000, 19000, 21000)      -- $250.00
     ON CONFLICT (ticker) DO NOTHING;
 
 -- Function to automatically update 'updated_at' columns
@@ -86,19 +91,19 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers for 'users' table
-CREATE TRIGGER set_timestamp_users
+CREATE OR REPLACE TRIGGER set_timestamp_users
     BEFORE UPDATE ON users
     FOR EACH ROW
     EXECUTE FUNCTION trigger_set_timestamp();
 
 -- Triggers for 'stocks' table
-CREATE TRIGGER set_timestamp_stocks
+CREATE OR REPLACE TRIGGER set_timestamp_stocks
     BEFORE UPDATE ON stocks
     FOR EACH ROW
     EXECUTE FUNCTION trigger_set_timestamp();
 
 -- Triggers for 'portfolio_holdings' table
-CREATE TRIGGER set_timestamp_holdings
+CREATE OR REPLACE TRIGGER set_timestamp_holdings
     BEFORE UPDATE ON holdings
     FOR EACH ROW
     EXECUTE FUNCTION trigger_set_timestamp();
@@ -106,8 +111,3 @@ CREATE TRIGGER set_timestamp_holdings
 -- Note: `transactions` table typically doesn't have an `updated_at` as transactions are immutable once created.
 -- Its `timestamp` field records the creation time.
 
-
--- RESET SCRIPT
-truncate table orders;
-truncate table holdings;
-update users set cash_balance_cents=10000000;

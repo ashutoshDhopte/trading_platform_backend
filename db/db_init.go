@@ -21,17 +21,16 @@ func init() {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	sslmode := os.Getenv("DB_SSL_MODE")
-	poolmode := os.Getenv("DB_POOL_MODE")
 
-	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" || poolmode == "" {
+	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" {
 		fmt.Println("Warning: environment variable(s) are not set")
 	}
 	if port == "" {
 		port = "5432" // default fallback
 	}
 
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s pool_mode=%s",
-		user, password, dbname, host, port, sslmode, poolmode,
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
+		user, password, dbname, host, port, sslmode,
 	)
 
 	//dbUrl := os.Getenv("DB_URL")
@@ -46,5 +45,8 @@ func init() {
 		fmt.Printf("Error opening database: %q\n", err)
 	} else {
 		fmt.Println("Successfully connected to PostgreSQL database!")
+
+		//reset current price
+		UpdateStocksResetCurrentPrice()
 	}
 }

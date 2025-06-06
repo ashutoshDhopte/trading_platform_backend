@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+	"gorm.io/gorm"
 	"trading_platform_backend/orm"
 )
 
@@ -44,4 +46,11 @@ func GetHoldingByUserIdAndStockId(userId int64, stockId int64) orm.Holdings {
 	var holding orm.Holdings
 	DB.Where("user_id = ? and stock_id = ?", userId, stockId).First(&holding)
 	return holding
+}
+
+func UpdateStocksResetCurrentPrice() {
+	result := DB.Model(&orm.Stocks{}).Where("1 = 1").Update("current_price_cents", gorm.Expr("opening_price_cents"))
+	if result.Error != nil {
+		fmt.Println("Failed to reset current stock price, " + result.Error.Error())
+	}
 }

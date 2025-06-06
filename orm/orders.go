@@ -11,8 +11,8 @@ type Orders struct {
 	TradeType            string
 	OrderStatus          string
 	Quantity             int64
-	PricePerShareCents   float64
-	TotalOrderValueCents float64
+	PricePerShareCents   int64
+	TotalOrderValueCents int64
 	CreatedAt            time.Time
 	Notes                string
 }
