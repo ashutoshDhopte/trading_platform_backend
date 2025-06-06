@@ -63,23 +63,18 @@ CREATE TABLE IF NOT EXISTS orders (
 
 -- Insert a default user for the MVP
 INSERT INTO users (username, email, cash_balance_cents)
-VALUES ('default_user', 'user@example.com', 1000000)
+VALUES ('default_user', 'user@example.com', 10000000)
     ON CONFLICT (username) DO NOTHING;
 
 -- Insert some mock stocks for V1
 INSERT INTO stocks (ticker, name, opening_price_cents, min_price_generator_cents, max_price_generator_cents)
 VALUES
-    ('AAPL', 'Apple Inc.', 17500, 17000, 18000),    -- $175.50
-    ('GOOGL', 'Alphabet Inc.', 280000, 275000, 285000), -- $2800.25
-    ('MSFT', 'Microsoft Corp.', 33000, 32500, 33500),   -- $330.75
-    ('AMZN', 'Amazon.com Inc.', 330045, 325000, 345000),   -- $3300.45
-    ('TSLA', 'Tesla Inc.', 24800, 24000, 26000)      -- $250.00
+    ('AAPL', 'Apple Inc.', 15000, 14000, 16000),    -- $175.50
+    ('GOOGL', 'Alphabet Inc.', 25000, 24000, 26000), -- $2800.25
+    ('MSFT', 'Microsoft Corp.', 30000, 29000, 31000),   -- $330.75
+    ('AMZN', 'Amazon.com Inc.', 35000, 34000, 36000),   -- $3300.45
+    ('TSLA', 'Tesla Inc.', 20000, 19000, 21000)      -- $250.00
     ON CONFLICT (ticker) DO NOTHING;
-
-INSERT INTO holdings (user_id, stock_id, quantity, average_cost_per_share_cents)
-VALUES
-    (1, 1, 200, 17400),
-    (1, 2, 900, 276000);
 
 -- Function to automatically update 'updated_at' columns
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
