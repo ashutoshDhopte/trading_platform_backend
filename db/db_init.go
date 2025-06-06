@@ -22,7 +22,7 @@ func init() {
 	port := os.Getenv("DB_PORT")
 	sslmode := os.Getenv("DB_SSL_MODE")
 
-	if dbname == "" || password == "" || host == "" || user == "" {
+	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" {
 		fmt.Println("Warning: environment variable(s) are not set")
 	}
 	if port == "" {
