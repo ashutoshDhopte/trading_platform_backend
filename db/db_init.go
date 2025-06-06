@@ -21,16 +21,17 @@ func init() {
 	host := os.Getenv("DB_HOST")
 	port := os.Getenv("DB_PORT")
 	sslmode := os.Getenv("DB_SSL_MODE")
+	poolmode := os.Getenv("DB_POOL_MODE")
 
-	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" {
+	if dbname == "" || password == "" || host == "" || user == "" || sslmode == "" || poolmode == "" {
 		fmt.Println("Warning: environment variable(s) are not set")
 	}
 	if port == "" {
 		port = "5432" // default fallback
 	}
 
-	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
-		user, password, dbname, host, port, sslmode,
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s pool_mode=%s",
+		user, password, dbname, host, port, sslmode, poolmode,
 	)
 
 	//dbUrl := os.Getenv("DB_URL")
