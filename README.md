@@ -32,6 +32,7 @@ Follow these instructions to get the backend server running on your local machin
 - [Go](https://go.dev/dl/) (version 1.22+ recommended)
 - [Docker](https://www.docker.com/products/docker-desktop/) and Docker Compose
 - A running PostgreSQL instance (instructions to run one with Docker are below)
+- [Next.js frontend Git repository](https://github.com/ashutoshDhopte/trading_platform_frontend)
 
 ### Installation & Setup
 
