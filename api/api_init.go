@@ -6,9 +6,10 @@ import (
 	"github.com/rs/cors"
 	"log"
 	"net/http"
+	"trading_platform_backend/routine"
 )
 
-func init() {
+func InitApi() {
 
 	apiMux := registerRoutes()
 
@@ -40,6 +41,7 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/sell-stocks", RecoverMiddleware(SellStocks))
 	apiMux.HandleFunc("/login", RecoverMiddleware(LoginUser))
 	apiMux.HandleFunc("/create-account", RecoverMiddleware(CreateAccount))
+	apiMux.HandleFunc("/ws", routine.ServeWs)
 	// Add more handlers here
 
 	return apiMux

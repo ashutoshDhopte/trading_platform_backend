@@ -11,7 +11,7 @@ import (
 
 var DB *gorm.DB // Global variable to hold the database connection pool
 
-func init() {
+func InitDB() {
 
 	_ = godotenv.Load()
 

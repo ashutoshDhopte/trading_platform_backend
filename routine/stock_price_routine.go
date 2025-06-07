@@ -1,4 +1,4 @@
-package service
+package routine
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 	"trading_platform_backend/db"
+	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
 )
 
@@ -20,6 +21,10 @@ type StockPriceGenerator struct {
 
 func initStockPriceGenerator() {
 	// Initialize the stock price generator
+	go startGeneratorLoop()
+}
+
+func startGeneratorLoop() {
 
 	stocks := db.GetAllStocks()
 	stocksMap := make(map[string]*orm.Stocks)
@@ -44,16 +49,21 @@ func initStockPriceGenerator() {
 	defer ticker.Stop() // Ensure the ticker is stopped when main exits
 
 	// Loop indefinitely, generating a new price every minute
+
 	for range ticker.C {
 		for _, generator := range generators {
 			price := generator.GenerateNewPrice()
-			fmt.Printf("[%s] New Stock Price: %s $%d\n", time.Now().Format("15:04:05"), generator.Ticker, price)
+			//fmt.Printf("[%s] New Stock Price: %s $%d\n", time.Now().Format("15:04:05"), generator.Ticker, price)
 
 			// Here you would typically publish this price, store it, or do something else with it.
 			stocksMap[generator.Ticker].CurrentPriceCents = price
 		}
 
 		db.DB.Save(&stocks)
+
+		//service.GetDashboardData(1)
+		WsHub.Broadcast <- model.ApiResponse{Data: len(WsHub.clients)}
+
 	}
 }
 
