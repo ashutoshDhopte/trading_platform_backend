@@ -1,4 +1,4 @@
-# Trading Simulator - Go Backend
+# Stock Trading Simulator - Go Backend
 
 This repository contains the backend service for the Full-Stack Trading Platform Simulator. It's a REST API built with Go (Golang) that handles all core business logic, including user portfolio management, processing simulated buy/sell orders, and broadcasting real-time stock price updates via WebSockets.
 
