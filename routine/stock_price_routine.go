@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 	"trading_platform_backend/db"
-	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
 )
 
@@ -45,7 +44,7 @@ func startGeneratorLoop() {
 	}
 
 	// Create a ticker that fires every minute
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop() // Ensure the ticker is stopped when main exits
 
 	// Loop indefinitely, generating a new price every minute
@@ -61,8 +60,7 @@ func startGeneratorLoop() {
 
 		db.DB.Save(&stocks)
 
-		//service.GetDashboardData(1)
-		WsHub.Broadcast <- model.ApiResponse{Data: len(WsHub.clients)}
+		WsHub.Broadcast <- ""
 
 	}
 }

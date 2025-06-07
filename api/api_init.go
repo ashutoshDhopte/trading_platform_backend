@@ -41,7 +41,7 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/sell-stocks", RecoverMiddleware(SellStocks))
 	apiMux.HandleFunc("/login", RecoverMiddleware(LoginUser))
 	apiMux.HandleFunc("/create-account", RecoverMiddleware(CreateAccount))
-	apiMux.HandleFunc("/ws", routine.ServeWs)
+	apiMux.HandleFunc("/ws/dashboard", routine.ServeWs)
 	// Add more handlers here
 
 	return apiMux

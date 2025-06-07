@@ -22,15 +22,18 @@ func GetDashboardData(userId int64) model.DashboardModel {
 	stockModels := make([]model.StockModel, 0)
 	stockMap := make(map[int64]orm.Stocks)
 	for _, stock := range stocks {
-		stockModels = append(stockModels, model.StockModel{
+		stockModel := model.StockModel{
 			StockID:             stock.StockID,
 			Ticker:              stock.Ticker,
 			Name:                stock.Name,
 			OpeningPriceDollars: util.ConvertCentsToDollars(stock.OpeningPriceCents),
-			ChangedPriceDollars: 0,
-			ChangedPercent:      0,
+			CurrentPriceDollars: util.ConvertCentsToDollars(stock.CurrentPriceCents),
 			UpdatedAt:           util.GetDateTimeString(stock.UpdatedAt),
-		})
+		}
+		stockModel.ChangedPriceDollars = stockModel.GetChangedPriceDollars()
+		stockModel.ChangedPercent = stockModel.GetChangedPercent()
+
+		stockModels = append(stockModels, stockModel)
 		stockMap[stock.StockID] = stock
 	}
 
@@ -44,9 +47,9 @@ func GetDashboardData(userId int64) model.DashboardModel {
 
 		var pnlCents int64
 		if holding.Quantity > 0 {
-			pnlCents = stockMap[holding.StockID].OpeningPriceCents - holding.AverageCostPerShareCents
+			pnlCents = stockMap[holding.StockID].CurrentPriceCents - holding.AverageCostPerShareCents
 		} else if holding.Quantity < 0 {
-			pnlCents = holding.AverageCostPerShareCents - stockMap[holding.StockID].OpeningPriceCents
+			pnlCents = holding.AverageCostPerShareCents - stockMap[holding.StockID].CurrentPriceCents
 		}
 
 		holdingValueCents := holding.Quantity * holding.AverageCostPerShareCents
@@ -112,7 +115,7 @@ func BuyStocks(userId int64, ticker string, quantity int64) string {
 			return errors.New("user does not exist")
 		}
 
-		totalOrderValueCents := quantity * stock.OpeningPriceCents
+		totalOrderValueCents := quantity * stock.CurrentPriceCents
 		if totalOrderValueCents > user.CashBalanceCents {
 			return errors.New("user don't have enough balance")
 		}
@@ -156,8 +159,8 @@ func buyOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, ho
 		TradeType:            util.TradeTypeBuy,
 		OrderStatus:          util.OrderStatusExecuted,
 		Quantity:             quantity,
-		PricePerShareCents:   stock.OpeningPriceCents,
-		TotalOrderValueCents: quantity * stock.OpeningPriceCents,
+		PricePerShareCents:   stock.CurrentPriceCents,
+		TotalOrderValueCents: quantity * stock.CurrentPriceCents,
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -219,7 +222,7 @@ func SellStocks(userId int64, ticker string, quantity int64) string {
 			return errors.New("user does not exist")
 		}
 
-		totalOrderValueCents := quantity * stock.OpeningPriceCents
+		totalOrderValueCents := quantity * stock.CurrentPriceCents
 		if totalOrderValueCents > user.CashBalanceCents {
 			return errors.New("user don't have enough balance")
 		}
@@ -262,8 +265,8 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 		TradeType:            util.TradeTypeSell,
 		OrderStatus:          util.OrderStatusExecuted,
 		Quantity:             quantity,
-		PricePerShareCents:   stock.OpeningPriceCents,
-		TotalOrderValueCents: quantity * stock.OpeningPriceCents,
+		PricePerShareCents:   stock.CurrentPriceCents,
+		TotalOrderValueCents: quantity * stock.CurrentPriceCents,
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
