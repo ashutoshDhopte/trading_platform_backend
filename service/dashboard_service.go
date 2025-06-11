@@ -304,3 +304,25 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 
 	return ""
 }
+
+func AddStockToWatchlist(userId int64, stockId int64, targetPrice float64) error {
+
+	stockWatch := db.GetStockWatchlistByUserIdAndStockId(userId, stockId)
+	if stockWatch.StockWatchlistID > 0 {
+		return errors.New("stock is already in the watchlist")
+	}
+
+	stockWatch = orm.StockWatchlist{
+		UserId:           userId,
+		StockId:          stockId,
+		TargetPriceCents: int64(targetPrice * 100),
+		IsActive:         true,
+		CreatedAt:        time.Now(),
+	}
+
+	if err := db.DB.Create(&stockWatch).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

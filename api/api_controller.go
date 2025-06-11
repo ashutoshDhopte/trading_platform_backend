@@ -271,3 +271,52 @@ func GetOrders(w http.ResponseWriter, r *http.Request) {
 		response = getSuccessApiResponse(result)
 	}
 }
+
+func AddStockToWatchlist(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	userIdStr := r.URL.Query().Get("userId")
+	stockIdStr := r.URL.Query().Get("stockId")
+	targetPriceStr := r.URL.Query().Get("targetPrice")
+
+	if userIdStr == "" || stockIdStr == "" || targetPriceStr == "" {
+		response = getErrorApiResponse("userId, stockId and targetPrice is required")
+		return
+	}
+
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		response = getErrorApiResponse("userId is invalid")
+		return
+	}
+
+	stockId, err := strconv.ParseInt(stockIdStr, 10, 64)
+	if err != nil {
+		response = getErrorApiResponse("stockId is invalid")
+		return
+	}
+
+	targetPrice, err := strconv.ParseFloat(targetPriceStr, 64)
+	if err != nil {
+		response = getErrorApiResponse("targetPrice is invalid")
+		return
+	}
+
+	err = service.AddStockToWatchlist(userId, stockId, targetPrice)
+	if err != nil {
+		response = getErrorApiResponse(err.Error())
+	} else {
+		response = getSuccessApiResponse("")
+	}
+}

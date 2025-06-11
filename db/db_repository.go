@@ -71,3 +71,9 @@ func GetOrdersAndStocksByUserId(userId int64) []map[string]interface{} {
 		Find(&result)
 	return result
 }
+
+func GetStockWatchlistByUserIdAndStockId(userId int64, stockId int64) orm.StockWatchlist {
+	var stockWatchlist orm.StockWatchlist
+	DB.Where("user_id = ? and stock_id = ? and is_active = true", userId, stockId).Find(&stockWatchlist)
+	return stockWatchlist
+}
