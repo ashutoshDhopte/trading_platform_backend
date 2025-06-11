@@ -1,0 +1,9 @@
+
+ALTER TABLE holdings
+    ALTER COLUMN quantity TYPE BIGINT,
+    ALTER COLUMN quantity SET NOT NULL,
+    ALTER COLUMN quantity SET DEFAULT 0;
+
+ALTER TABLE orders
+    ALTER COLUMN quantity TYPE BIGINT,
+    ALTER COLUMN quantity SET NOT NULL;

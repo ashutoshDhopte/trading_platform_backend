@@ -6,6 +6,7 @@ import (
 	"github.com/rs/cors"
 	"log"
 	"net/http"
+	"runtime/debug"
 	"trading_platform_backend/routine"
 )
 
@@ -37,10 +38,13 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/", homeHandler)
 	apiMux.HandleFunc("/dashboard", RecoverMiddleware(GetDashboard))
 	apiMux.HandleFunc("/user", RecoverMiddleware(GetUserByEmailAndPassword))
+	apiMux.HandleFunc("/user/v2", RecoverMiddleware(GetUserById))
 	apiMux.HandleFunc("/buy-stocks", RecoverMiddleware(BuyStocks))
 	apiMux.HandleFunc("/sell-stocks", RecoverMiddleware(SellStocks))
 	apiMux.HandleFunc("/login", RecoverMiddleware(LoginUser))
 	apiMux.HandleFunc("/create-account", RecoverMiddleware(CreateAccount))
+	apiMux.HandleFunc("/orders", RecoverMiddleware(GetOrders))
+
 	apiMux.HandleFunc("/ws/dashboard", routine.ServeWs)
 	// Add more handlers here
 
@@ -60,6 +64,7 @@ func RecoverMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		defer func() {
 			if rec := recover(); rec != nil {
 				fmt.Println("Recovered from panic:", rec)
+				fmt.Printf("%s\n", debug.Stack())
 				response := getErrorApiResponse("Internal Server Error")
 				json.NewEncoder(w).Encode(response)
 			}

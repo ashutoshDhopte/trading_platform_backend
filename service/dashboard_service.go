@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gorm.io/gorm"
 	"math"
+	"time"
 	"trading_platform_backend/db"
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
@@ -161,6 +162,7 @@ func buyOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, ho
 		Quantity:             quantity,
 		PricePerShareCents:   stock.CurrentPriceCents,
 		TotalOrderValueCents: quantity * stock.CurrentPriceCents,
+		CreatedAt:            time.Now(),
 	}
 
 	if err := tx.Create(&order).Error; err != nil {
@@ -267,6 +269,7 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 		Quantity:             quantity,
 		PricePerShareCents:   stock.CurrentPriceCents,
 		TotalOrderValueCents: quantity * stock.CurrentPriceCents,
+		CreatedAt:            time.Now(),
 	}
 
 	if err := tx.Create(&order).Error; err != nil {

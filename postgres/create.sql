@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS holdings (
     holding_id SERIAL PRIMARY KEY,                      -- Surrogate key
     user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     stock_id INTEGER NOT NULL REFERENCES stocks(stock_id) ON DELETE RESTRICT,
-    quantity INTEGER NOT NULL,
+    quantity BIGINT NOT NULL DEFAULT 0,
     average_cost_per_share_cents BIGINT NOT NULL DEFAULT 0, -- Crucial for V2 P&L. For V1, can be set to buy price.
     created_at TIMESTAMPTZ DEFAULT NOW(),              -- When the holding was first initiated
     updated_at TIMESTAMPTZ DEFAULT NOW(),              -- When quantity or avg_cost was last changed
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS orders (
     stock_id INTEGER NOT NULL REFERENCES stocks(stock_id) ON DELETE RESTRICT,
     trade_type TEXT NOT NULL,
     order_status TEXT NOT NULL,
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    quantity BIGINT NOT NULL CHECK (quantity > 0),
     price_per_share_cents BIGINT NOT NULL,
     total_order_value_cents BIGINT NOT NULL,      -- Calculated: quantity * price_per_share_cents_at_execution
     created_at TIMESTAMPTZ DEFAULT NOW(),

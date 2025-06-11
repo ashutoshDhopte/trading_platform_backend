@@ -62,6 +62,35 @@ func GetUserByEmailAndPassword(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func GetUserById(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	userIdStr := r.URL.Query().Get("userId")
+
+	if userIdStr == "" {
+		response = getErrorApiResponse("userId is required")
+	} else {
+		userId, err := strconv.ParseInt(userIdStr, 10, 64)
+		if err != nil {
+			response = getErrorApiResponse("userId is required")
+		} else {
+			userModel := service.GetUserById(userId)
+			response = getSuccessApiResponse(userModel)
+		}
+	}
+}
+
 func BuyStocks(w http.ResponseWriter, r *http.Request) {
 
 	var response model.ApiResponse
@@ -207,6 +236,38 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	} else if result == 0 {
 		response = getErrorApiResponse("failed to create account")
 	} else {
+		response = getSuccessApiResponse(result)
+	}
+}
+
+func GetOrders(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	userIdStr := r.URL.Query().Get("userId")
+
+	if userIdStr == "" {
+		response = getErrorApiResponse("userId is required")
+		return
+	}
+
+	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	if err != nil {
+		response = getErrorApiResponse("userId is invalid")
+	}
+
+	result := service.GetAllOrders(userId)
+	if result != nil {
 		response = getSuccessApiResponse(result)
 	}
 }

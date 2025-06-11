@@ -21,6 +21,18 @@ func GetUserByEmailAndPassword(email string, password string) model.UserModel {
 	}
 }
 
+func GetUserById(userId int64) model.UserModel {
+	user := db.GetUserById(userId)
+	return model.UserModel{
+		UserID:             user.UserID,
+		Username:           user.Username,
+		Email:              user.Email,
+		CashBalanceDollars: util.ConvertCentsToDollars(user.CashBalanceCents),
+		CreatedAt:          util.GetDateTimeString(user.CreatedAt),
+		UpdatedAt:          util.GetDateTimeString(user.UpdatedAt),
+	}
+}
+
 func LoginUser(email string, password string) int64 {
 
 	user := db.GetUserByEmailAndPassword(email, password)

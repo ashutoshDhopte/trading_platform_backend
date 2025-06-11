@@ -54,3 +54,20 @@ func UpdateStocksResetCurrentPrice() {
 		fmt.Println("Failed to reset current stock price, " + result.Error.Error())
 	}
 }
+
+func GetOrdersByUserId(userId int64) []orm.Orders {
+	var orders []orm.Orders
+	DB.Where("user_id = ?", userId).Find(&orders)
+	return orders
+}
+
+func GetOrdersAndStocksByUserId(userId int64) []map[string]interface{} {
+	var result []map[string]interface{}
+	DB.Table("orders").
+		Select("*").
+		Joins("join stocks on stocks.stock_id = orders.stock_id").
+		Where("orders.user_id = ?", userId).
+		Order("orders.created_at desc").
+		Find(&result)
+	return result
+}
