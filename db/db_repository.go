@@ -72,8 +72,24 @@ func GetOrdersAndStocksByUserId(userId int64) []map[string]interface{} {
 	return result
 }
 
-func GetStockWatchlistByUserIdAndStockId(userId int64, stockId int64) orm.StockWatchlist {
+func GetStockWatchlistByUserIdAndStockId(userId int32, stockId int32) orm.StockWatchlist {
 	var stockWatchlist orm.StockWatchlist
 	DB.Where("user_id = ? and stock_id = ? and is_active = true", userId, stockId).Find(&stockWatchlist)
+	return stockWatchlist
+}
+
+func GetStockWatchlistByUserId(userId int32) []orm.StockWatchlist {
+	var stockWatchlist []orm.StockWatchlist
+	DB.Where("user_id = ? and is_active = true", userId).Find(&stockWatchlist)
+	return stockWatchlist
+}
+
+func GetStockWatchlistAndStockTickerByUserId(userId int64) []map[string]interface{} {
+	var stockWatchlist []map[string]interface{}
+	DB.Table("stock_watchlist").
+		Select("stock_watchlist.*, stocks.ticker, stocks.name").
+		Joins("join stocks on stocks.stock_id = stock_watchlist.stock_id").
+		Where("stock_watchlist.user_id = ? and is_active = true", userId).
+		Find(&stockWatchlist)
 	return stockWatchlist
 }

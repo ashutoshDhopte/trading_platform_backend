@@ -286,34 +286,65 @@ func AddStockToWatchlist(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	type AddWatchlistRequest struct {
+		UserId      int32   `json:"userId"`
+		StockId     int32   `json:"stockId"`
+		TargetPrice float64 `json:"targetPrice"`
+	}
+
+	var payload AddWatchlistRequest
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	if payload.UserId == 0 || payload.StockId == 0 || payload.TargetPrice <= 0 {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	err = service.AddStockToWatchlist(payload.UserId, payload.StockId, payload.TargetPrice)
+	if err != nil {
+		response = getErrorApiResponse(err.Error())
+	} else {
+		response = getSuccessApiResponse("")
+	}
+}
+
+func DeleteStockFromWatchlist(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
 	userIdStr := r.URL.Query().Get("userId")
 	stockIdStr := r.URL.Query().Get("stockId")
-	targetPriceStr := r.URL.Query().Get("targetPrice")
 
-	if userIdStr == "" || stockIdStr == "" || targetPriceStr == "" {
-		response = getErrorApiResponse("userId, stockId and targetPrice is required")
+	if userIdStr == "" || stockIdStr == "" {
+		response = getErrorApiResponse("userId and stockId is required")
 		return
 	}
 
-	userId, err := strconv.ParseInt(userIdStr, 10, 64)
+	userId, err := strconv.ParseInt(userIdStr, 10, 32)
 	if err != nil {
 		response = getErrorApiResponse("userId is invalid")
-		return
 	}
 
-	stockId, err := strconv.ParseInt(stockIdStr, 10, 64)
+	stockId, err := strconv.ParseInt(stockIdStr, 10, 32)
 	if err != nil {
 		response = getErrorApiResponse("stockId is invalid")
-		return
 	}
 
-	targetPrice, err := strconv.ParseFloat(targetPriceStr, 64)
-	if err != nil {
-		response = getErrorApiResponse("targetPrice is invalid")
-		return
-	}
-
-	err = service.AddStockToWatchlist(userId, stockId, targetPrice)
+	err = service.DeleteFromWatchlist(int32(userId), int32(stockId))
 	if err != nil {
 		response = getErrorApiResponse(err.Error())
 	} else {

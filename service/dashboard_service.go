@@ -21,7 +21,7 @@ func GetDashboardData(userId int64) model.DashboardModel {
 
 	stocks := db.GetAllStocks()
 	stockModels := make([]model.StockModel, 0)
-	stockMap := make(map[int64]orm.Stocks)
+	stockMap := make(map[int32]orm.Stocks)
 	for _, stock := range stocks {
 		stockModel := model.StockModel{
 			StockID:             stock.StockID,
@@ -35,7 +35,7 @@ func GetDashboardData(userId int64) model.DashboardModel {
 		stockModel.ChangedPercent = stockModel.GetChangedPercent()
 
 		stockModels = append(stockModels, stockModel)
-		stockMap[stock.StockID] = stock
+		stockMap[int32(stock.StockID)] = stock
 	}
 
 	holdings := db.GetActiveHoldingsByUserID(userId)
@@ -48,16 +48,16 @@ func GetDashboardData(userId int64) model.DashboardModel {
 
 		var pnlCents int64
 		if holding.Quantity > 0 {
-			pnlCents = stockMap[holding.StockID].CurrentPriceCents - holding.AverageCostPerShareCents
+			pnlCents = stockMap[int32(holding.StockID)].CurrentPriceCents - holding.AverageCostPerShareCents
 		} else if holding.Quantity < 0 {
-			pnlCents = holding.AverageCostPerShareCents - stockMap[holding.StockID].CurrentPriceCents
+			pnlCents = holding.AverageCostPerShareCents - stockMap[int32(holding.StockID)].CurrentPriceCents
 		}
 
 		holdingValueCents := holding.Quantity * holding.AverageCostPerShareCents
 
 		holdingModels = append(holdingModels, model.HoldingModel{
 			HoldingID:                  holding.HoldingID,
-			StockTicker:                stockMap[holding.StockID].Ticker,
+			StockTicker:                stockMap[int32(holding.StockID)].Ticker,
 			Quantity:                   holding.Quantity,
 			AverageCostPerShareDollars: util.ConvertCentsToDollars(holding.AverageCostPerShareCents),
 			TotalValueDollars:          util.ConvertCentsToDollars(holdingValueCents),
@@ -79,10 +79,33 @@ func GetDashboardData(userId int64) model.DashboardModel {
 		UpdatedAt:          util.GetDateTimeString(user.UpdatedAt),
 	}
 
+	watchlist := db.GetStockWatchlistByUserId(int32(userId))
+	stockWatchlist := make([]model.StockWatchlistModel, len(watchlist))
+
+	for i, watch := range watchlist {
+
+		diffPrice := stockMap[watch.StockId].CurrentPriceCents - watch.TargetPriceCents
+		diffPercent := (float64(diffPrice) / float64(stockMap[watch.StockId].CurrentPriceCents)) * 100
+
+		stockWatchlist[i] = model.StockWatchlistModel{
+			StockWatchlistID:   watch.StockWatchlistID,
+			UserId:             watch.UserId,
+			StockId:            watch.StockId,
+			StockTicker:        stockMap[watch.StockId].Ticker,
+			StockName:          stockMap[watch.StockId].Name,
+			TargetPriceDollars: util.ConvertCentsToDollars(watch.TargetPriceCents),
+			DiffPriceDollars:   util.ConvertCentsToDollars(diffPrice),
+			DiffPercent:        diffPercent,
+			IsActive:           watch.IsActive,
+			CreatedAt:          util.GetDateTimeString(watch.CreatedAt),
+		}
+	}
+
 	return model.DashboardModel{
 		User:                     userModel,
 		Stocks:                   stockModels,
 		Holdings:                 holdingModels,
+		StockWatchlist:           stockWatchlist,
 		TotalHoldingValueDollars: util.ConvertCentsToDollars(totalHoldingValueCents),
 		PortfolioValueDollars:    util.ConvertCentsToDollars(user.CashBalanceCents + totalHoldingValueCents),
 		TotalPnLDollars:          util.ConvertCentsToDollars(totalPnlCents),
@@ -305,7 +328,7 @@ func sellOrder(tx *gorm.DB, user *orm.Users, stock orm.Stocks, quantity int64, h
 	return ""
 }
 
-func AddStockToWatchlist(userId int64, stockId int64, targetPrice float64) error {
+func AddStockToWatchlist(userId int32, stockId int32, targetPrice float64) error {
 
 	stockWatch := db.GetStockWatchlistByUserIdAndStockId(userId, stockId)
 	if stockWatch.StockWatchlistID > 0 {
@@ -321,6 +344,19 @@ func AddStockToWatchlist(userId int64, stockId int64, targetPrice float64) error
 	}
 
 	if err := db.DB.Create(&stockWatch).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteFromWatchlist(userId int32, stockId int32) error {
+	stockWatch := db.GetStockWatchlistByUserIdAndStockId(userId, stockId)
+	if stockWatch.StockWatchlistID == 0 {
+		return errors.New("stock is already deleted")
+	}
+
+	if err := db.DB.Delete(&stockWatch).Error; err != nil {
 		return err
 	}
 

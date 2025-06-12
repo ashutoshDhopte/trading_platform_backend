@@ -3,9 +3,9 @@ package orm
 import "time"
 
 type StockWatchlist struct {
-	StockWatchlistID int64 `gorm:"primaryKey"`
-	UserId           int64
-	StockId          int64
+	StockWatchlistID int32 `gorm:"primaryKey"`
+	UserId           int32
+	StockId          int32
 	TargetPriceCents int64
 	IsActive         bool
 	CreatedAt        time.Time

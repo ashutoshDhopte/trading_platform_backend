@@ -1,12 +1,14 @@
 package model
 
-import "time"
-
 type StockWatchlistModel struct {
-	StockWatchlistID int64
-	UserId           int64
-	StockId          int64
-	TargetPriceCents int64
-	IsActive         bool
-	CreatedAt        time.Time
+	StockWatchlistID   int32
+	UserId             int32
+	StockId            int32
+	StockTicker        string
+	StockName          string
+	TargetPriceDollars float64
+	DiffPriceDollars   float64
+	DiffPercent        float64
+	IsActive           bool
+	CreatedAt          string
 }
