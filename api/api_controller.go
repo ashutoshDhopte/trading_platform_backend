@@ -374,10 +374,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userId := payload["userId"].(float64)
-	if err != nil {
-		response = getErrorApiResponse("userId is invalid")
-		return
-	}
 
 	settings := payload["settings"].(map[string]interface{})
 	if len(settings) == 0 {
