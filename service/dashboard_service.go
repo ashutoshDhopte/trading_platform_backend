@@ -77,6 +77,7 @@ func GetDashboardData(userId int64) model.DashboardModel {
 		CashBalanceDollars: util.ConvertCentsToDollars(user.CashBalanceCents),
 		CreatedAt:          util.GetDateTimeString(user.CreatedAt),
 		UpdatedAt:          util.GetDateTimeString(user.UpdatedAt),
+		NotificationsOn:    user.NotificationsOn,
 	}
 
 	watchlist := db.GetStockWatchlistByUserId(int32(userId))

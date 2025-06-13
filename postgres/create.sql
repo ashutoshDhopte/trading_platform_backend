@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     salt TEXT,                                          -- Not used in V1
     cash_balance_cents BIGINT NOT NULL DEFAULT 0, -- e.g., $10,000.00 stored as 1,000,000 cents
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    notifications_on BOOLEAN DEFAULT FALSE
 );
 
 -- Table for Mock Stocks

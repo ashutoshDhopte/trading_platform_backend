@@ -13,4 +13,5 @@ type Users struct {
 	CashBalanceCents int64
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+	NotificationsOn  bool
 }

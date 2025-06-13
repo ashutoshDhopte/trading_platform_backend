@@ -330,7 +330,7 @@ func DeleteStockFromWatchlist(w http.ResponseWriter, r *http.Request) {
 	stockIdStr := r.URL.Query().Get("stockId")
 
 	if userIdStr == "" || stockIdStr == "" {
-		response = getErrorApiResponse("userId and stockId is required")
+		response = getErrorApiResponse("userId and stockId are required")
 		return
 	}
 
@@ -349,5 +349,48 @@ func DeleteStockFromWatchlist(w http.ResponseWriter, r *http.Request) {
 		response = getErrorApiResponse(err.Error())
 	} else {
 		response = getSuccessApiResponse("")
+	}
+}
+
+func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	var payload map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&payload)
+	if err != nil {
+		response = getErrorApiResponse("Invalid payload")
+		return
+	}
+
+	userId := payload["userId"].(float64)
+	if err != nil {
+		response = getErrorApiResponse("userId is invalid")
+		return
+	}
+
+	settings := payload["settings"].(map[string]interface{})
+	if len(settings) == 0 {
+		fmt.Println("settings is required")
+		response = getErrorApiResponse("settings are empty")
+		return
+	}
+
+	user, resRrr := service.UpdateUserSettings(int64(userId), settings)
+	if resRrr != nil {
+		fmt.Println(resRrr)
+		response = getErrorApiResponse(resRrr.Error())
+	} else {
+		response = getSuccessApiResponse(user)
 	}
 }

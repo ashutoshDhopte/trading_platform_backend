@@ -7,4 +7,5 @@ type UserModel struct {
 	CashBalanceDollars float64
 	CreatedAt          string
 	UpdatedAt          string
+	NotificationsOn    bool
 }
