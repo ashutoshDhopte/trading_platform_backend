@@ -193,11 +193,14 @@ func LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := service.LoginUser(email, password)
-	if result > 0 {
-		response = getSuccessApiResponse(result)
-	} else {
+	authModel, err := service.LoginUser(email, password)
+	if authModel.UserId == 0 {
 		response = getErrorApiResponse("user not found")
+	} else if err != nil {
+		fmt.Println(err.Error())
+		response = getErrorApiResponse("failed to log in: " + err.Error())
+	} else {
+		response = getSuccessApiResponse(authModel)
 	}
 }
 
@@ -229,14 +232,14 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := service.CreateAccount(email, password)
+	authModel, err := service.CreateAccount(email, password)
 	if err != nil {
 		fmt.Println(err.Error())
 		response = getErrorApiResponse("failed to create account, " + err.Error())
-	} else if result == 0 {
+	} else if authModel.UserId == 0 {
 		response = getErrorApiResponse("failed to create account")
 	} else {
-		response = getSuccessApiResponse(result)
+		response = getSuccessApiResponse(authModel)
 	}
 }
 

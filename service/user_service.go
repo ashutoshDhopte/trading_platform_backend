@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"gorm.io/gorm"
+	"trading_platform_backend/auth"
 	"trading_platform_backend/db"
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
@@ -35,16 +36,25 @@ func GetUserById(userId int64) model.UserModel {
 	}
 }
 
-func LoginUser(email string, password string) int64 {
+func LoginUser(email string, password string) (model.Auth, error) {
 
 	user := db.GetUserByEmailAndPassword(email, password)
 
-	return user.UserID
+	//jwt session token
+	token, err := auth.CreateJWT(int(user.UserID), user.Email)
+	if err != nil {
+		return model.Auth{}, err
+	}
+
+	return model.Auth{
+		UserId: int(user.UserID),
+		Token:  token,
+	}, nil
 }
 
-func CreateAccount(email string, password string) (int64, error) {
+func CreateAccount(email string, password string) (model.Auth, error) {
 
-	var userId int64
+	var authResponse model.Auth
 
 	err := db.DB.Transaction(func(tx *gorm.DB) error {
 
@@ -66,16 +76,23 @@ func CreateAccount(email string, password string) (int64, error) {
 			return err
 		}
 
-		userId = user.UserID
+		//jwt session token
+		token, err := auth.CreateJWT(int(user.UserID), user.Email)
+		if err != nil {
+			return err
+		}
+
+		authResponse.Token = token
+		authResponse.UserId = int(user.UserID)
 
 		return nil
 	})
 
 	if err != nil {
-		return 0, err
+		return model.Auth{}, err
 	}
 
-	return userId, nil
+	return authResponse, nil
 }
 
 func UpdateUserSettings(userId int64, userSettings map[string]interface{}) (model.UserModel, error) {
