@@ -12,12 +12,6 @@ func GetAllStocks() []orm.Stocks {
 	return stocks
 }
 
-func GetUserByEmailAndPassword(email string, password string) orm.Users {
-	var user orm.Users
-	DB.Where("email = ? and hashed_password = ?", email, password).First(&user)
-	return user
-}
-
 func GetUserByEmail(email string) orm.Users {
 	var user orm.Users
 	DB.Where("email = ?", email).First(&user)

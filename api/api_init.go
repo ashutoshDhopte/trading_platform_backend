@@ -50,6 +50,7 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/update-user-setting", JwtMiddleware(UpdateUserSettings))
 
 	apiMux.HandleFunc("/ws/dashboard", RecoverMiddleware(routine.ServeWs))
+	apiMux.HandleFunc("/migrate-passwords", RecoverMiddleware(PasswordMigration))
 	// Add more handlers here
 
 	return apiMux

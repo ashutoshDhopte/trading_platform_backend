@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
     username TEXT UNIQUE NOT NULL DEFAULT 'default_user', -- For V1, we can have a default user
     email TEXT UNIQUE,                                  -- Optional for V1, can be NULL
     hashed_password TEXT,                               -- Not used in V1
-    salt TEXT,                                          -- Not used in V1
     cash_balance_cents BIGINT NOT NULL DEFAULT 0, -- e.g., $10,000.00 stored as 1,000,000 cents
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),

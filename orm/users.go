@@ -9,7 +9,6 @@ type Users struct {
 	Username         string
 	Email            string
 	HashedPassword   string
-	Salt             string
 	CashBalanceCents int64
 	CreatedAt        time.Time
 	UpdatedAt        time.Time

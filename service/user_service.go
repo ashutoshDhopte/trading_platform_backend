@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"trading_platform_backend/auth"
 	"trading_platform_backend/db"
@@ -11,7 +12,13 @@ import (
 )
 
 func GetUserByEmailAndPassword(email string, password string) model.UserModel {
-	user := db.GetUserByEmailAndPassword(email, password)
+	user := db.GetUserByEmail(email)
+
+	validPassword := util.CheckPasswordHash(password, user.HashedPassword)
+	if !validPassword {
+		return model.UserModel{}
+	}
+
 	return model.UserModel{
 		UserID:             user.UserID,
 		Username:           user.Username,
@@ -38,7 +45,12 @@ func GetUserById(userId int64) model.UserModel {
 
 func LoginUser(email string, password string) (model.Auth, error) {
 
-	user := db.GetUserByEmailAndPassword(email, password)
+	user := db.GetUserByEmail(email)
+
+	validPassword := util.CheckPasswordHash(password, user.HashedPassword)
+	if !validPassword {
+		return model.Auth{}, errors.New("invalid password")
+	}
 
 	//jwt session token
 	token, err := auth.CreateJWT(int(user.UserID), user.Email)
@@ -64,14 +76,19 @@ func CreateAccount(email string, password string) (model.Auth, error) {
 			return errors.New("user with this email already exists")
 		}
 
+		hashedPassword, err := util.HashPassword(password)
+		if err != nil {
+			return err
+		}
+
 		user = orm.Users{
 			Username:         email,
 			Email:            email,
-			HashedPassword:   password,
+			HashedPassword:   hashedPassword,
 			CashBalanceCents: util.InitialInvestmentCents,
 		}
 
-		err := db.DB.Create(&user).Error
+		err = db.DB.Create(&user).Error
 		if err != nil {
 			return err
 		}
@@ -120,4 +137,19 @@ func UpdateUserSettings(userId int64, userSettings map[string]interface{}) (mode
 	userModel.UpdatedAt = util.GetDateTimeString(user.UpdatedAt)
 
 	return userModel, db.DB.Save(user).Error
+}
+
+func PasswordMigration() {
+	var users []orm.Users
+	db.DB.Find(&users)
+	for i := range users {
+		hashedPassword, err := util.HashPassword(users[i].HashedPassword)
+		if err == nil {
+			users[i].HashedPassword = hashedPassword
+		}
+	}
+	err := db.DB.Save(users).Error
+	if err != nil {
+		fmt.Println(err)
+	}
 }
