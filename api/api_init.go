@@ -6,7 +6,6 @@ import (
 	"github.com/rs/cors"
 	"log"
 	"net/http"
-	"runtime/debug"
 	"trading_platform_backend/routine"
 )
 
@@ -36,19 +35,21 @@ func InitApi() {
 func registerRoutes() *http.ServeMux {
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/", homeHandler)
-	apiMux.HandleFunc("/dashboard", RecoverMiddleware(GetDashboard))
-	apiMux.HandleFunc("/user", RecoverMiddleware(GetUserByEmailAndPassword))
-	apiMux.HandleFunc("/user/v2", RecoverMiddleware(GetUserById))
-	apiMux.HandleFunc("/buy-stocks", RecoverMiddleware(BuyStocks))
-	apiMux.HandleFunc("/sell-stocks", RecoverMiddleware(SellStocks))
+
 	apiMux.HandleFunc("/login", RecoverMiddleware(LoginUser))
 	apiMux.HandleFunc("/create-account", RecoverMiddleware(CreateAccount))
-	apiMux.HandleFunc("/orders", RecoverMiddleware(GetOrders))
-	apiMux.HandleFunc("/add-stock-watchlist", RecoverMiddleware(AddStockToWatchlist))
-	apiMux.HandleFunc("/delete-stock-watchlist", RecoverMiddleware(DeleteStockFromWatchlist))
-	apiMux.HandleFunc("/update-user-setting", RecoverMiddleware(UpdateUserSettings))
 
-	apiMux.HandleFunc("/ws/dashboard", routine.ServeWs)
+	apiMux.HandleFunc("/dashboard", JwtMiddleware(GetDashboard))
+	apiMux.HandleFunc("/user", JwtMiddleware(GetUserByEmailAndPassword))
+	apiMux.HandleFunc("/user/v2", JwtMiddleware(GetUserById))
+	apiMux.HandleFunc("/buy-stocks", JwtMiddleware(BuyStocks))
+	apiMux.HandleFunc("/sell-stocks", JwtMiddleware(SellStocks))
+	apiMux.HandleFunc("/orders", JwtMiddleware(GetOrders))
+	apiMux.HandleFunc("/add-stock-watchlist", JwtMiddleware(AddStockToWatchlist))
+	apiMux.HandleFunc("/delete-stock-watchlist", JwtMiddleware(DeleteStockFromWatchlist))
+	apiMux.HandleFunc("/update-user-setting", JwtMiddleware(UpdateUserSettings))
+
+	apiMux.HandleFunc("/ws/dashboard", RecoverMiddleware(routine.ServeWs))
 	// Add more handlers here
 
 	return apiMux
@@ -60,18 +61,4 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	// A simple JSON response
 	response := map[string]string{"status": "Go backend is operational"}
 	json.NewEncoder(w).Encode(response)
-}
-
-func RecoverMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				fmt.Println("Recovered from panic:", rec)
-				fmt.Printf("%s\n", debug.Stack())
-				response := getErrorApiResponse("Internal Server Error")
-				json.NewEncoder(w).Encode(response)
-			}
-		}()
-		next(w, r)
-	}
 }
