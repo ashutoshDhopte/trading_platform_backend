@@ -2,6 +2,8 @@
 
 This repository contains the backend service for the Full-Stack Trading Platform Simulator. It's a REST API built with Go (Golang) that handles all core business logic, including secure user authentication, portfolio management, processing simulated buy/sell orders, and broadcasting real-time stock price updates via WebSockets.
 
+[Try it](https://trade-sim-liard.vercel.app/)
+
 ## Key Features
 
 - **Secure Authentication:** User registration with **bcrypt** for secure password hashing and a login flow that issues **JSON Web Tokens (JWTs)** for session management.
