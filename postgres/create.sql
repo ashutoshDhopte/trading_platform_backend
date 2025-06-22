@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS stocks (
     min_price_generator_cents BIGINT,                   -- For V2: lower bound for dynamic price generator
     max_price_generator_cents BIGINT,                   -- For V2: upper bound for dynamic price generator
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    overall_sentiment_score INTEGER NOT NULL DEAFULT 0
 );
 
 -- Table for User's Portfolio Holdings (Current Stock Positions)
@@ -119,4 +120,14 @@ CREATE TABLE IF NOT EXISTS stock_watchlist(
     target_price_cents BIGINT NOT NULL DEFAULT 0,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+DROP TABLE IF EXISTS news_articles;
+CREATE TABLE IF NOT EXISTS news_articles(
+    news_article_id SERIAL PRIMARY KEY,
+    ticker TEXT NOT NULL,
+    article_title TEXT,
+    article_url TEXT,
+    publication_time TIMESTAMPTZ,
+    sentiment_score DECIMAL(3,2) NOT NULL DEFAULT 0
 );

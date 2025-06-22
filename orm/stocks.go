@@ -14,4 +14,5 @@ type Stocks struct {
 	MaxPriceGeneratorCents int64
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
+	OverallSentimentScore  float32
 }

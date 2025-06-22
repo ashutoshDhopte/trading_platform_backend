@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"time"
@@ -12,6 +13,7 @@ import (
 var jwtSecret = []byte(getJwtSecret())
 
 func getJwtSecret() string {
+	_ = godotenv.Load()
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		log.Println("WARNING: JWT_SECRET environment variable not set. Using default secret for development.")

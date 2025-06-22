@@ -411,3 +411,21 @@ func PasswordMigration(w http.ResponseWriter, r *http.Request) {
 	service.PasswordMigration()
 	response = getSuccessApiResponse("")
 }
+
+func NewsMigration(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	service.NewsMigration()
+	response = getSuccessApiResponse("")
+}

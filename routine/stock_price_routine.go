@@ -1,7 +1,6 @@
 package routine
 
 import (
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -29,8 +28,6 @@ func startGeneratorLoop() {
 	stocksMap := make(map[string]*orm.Stocks)
 	generators := make([]*StockPriceGenerator, 0)
 
-	fmt.Printf("Initial Stock Price:")
-
 	for i := range stocks {
 		generators = append(generators, NewStockPriceGenerator(
 			stocks[i].Ticker,
@@ -39,7 +36,6 @@ func startGeneratorLoop() {
 			stocks[i].MaxPriceGeneratorCents,
 			2.00,
 		))
-		fmt.Printf("%s $%d\n", stocks[i].Ticker, stocks[i].CurrentPriceCents)
 		stocksMap[stocks[i].Ticker] = &stocks[i]
 	}
 
@@ -58,7 +54,7 @@ func startGeneratorLoop() {
 			stocksMap[generator.Ticker].CurrentPriceCents = price
 		}
 
-		db.DB.Save(&stocks)
+		db.DB.Model(&stocks).Select("current_price_cents").Updates(&stocks)
 
 		WsHub.Broadcast <- ""
 
