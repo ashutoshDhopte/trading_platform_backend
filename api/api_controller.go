@@ -427,5 +427,85 @@ func NewsMigration(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	service.NewsMigration()
-	response = getSuccessApiResponse("")
+	response = getSuccessApiResponse("News migration endpoint")
+}
+
+func GetAllStocks(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	stocks := service.GetAllStocksData()
+	response = getSuccessApiResponse(stocks)
+}
+
+func GetStockNews(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	// Parse stock ID from query parameters
+	stockIDStr := r.URL.Query().Get("stockId")
+	pageStr := r.URL.Query().Get("page")
+
+	if stockIDStr == "" {
+		response = getErrorApiResponse("stockId is required")
+		return
+	}
+
+	stockID, err := strconv.ParseInt(stockIDStr, 10, 64)
+	if err != nil {
+		response = getErrorApiResponse("Invalid stockId")
+		return
+	}
+
+	// Default to page 1 if not provided
+	page := 1
+	if pageStr != "" {
+		pageInt, err := strconv.Atoi(pageStr)
+		if err != nil || pageInt < 1 {
+			response = getErrorApiResponse("Invalid page number")
+			return
+		}
+		page = pageInt
+	}
+
+	news := service.GetStockNewsWithPagination(stockID, page)
+	response = getSuccessApiResponse(news)
+}
+
+func UpdateSentimentEMA(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	service.UpdateSentimentEMA()
+	response = getSuccessApiResponse("Sentiment EMA updated successfully")
 }

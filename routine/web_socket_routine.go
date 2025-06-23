@@ -3,12 +3,13 @@ package routine
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"trading_platform_backend/service"
+
+	"github.com/gorilla/websocket"
 )
 
 // upgrader takes a normal HTTP connection and upgrades it to a persistent WebSocket connection.

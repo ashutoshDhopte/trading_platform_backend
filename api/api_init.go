@@ -3,10 +3,11 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"trading_platform_backend/routine"
+
+	"github.com/rs/cors"
 )
 
 func InitApi() {
@@ -40,6 +41,8 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/create-account", RecoverMiddleware(CreateAccount))
 
 	apiMux.HandleFunc("/dashboard", JwtMiddleware(GetDashboard))
+	apiMux.HandleFunc("/stocks", JwtMiddleware(GetAllStocks))
+	apiMux.HandleFunc("/stock-news", GetStockNews)
 	apiMux.HandleFunc("/user", JwtMiddleware(GetUserByEmailAndPassword))
 	apiMux.HandleFunc("/user/v2", JwtMiddleware(GetUserById))
 	apiMux.HandleFunc("/buy-stocks", JwtMiddleware(BuyStocks))
@@ -50,8 +53,11 @@ func registerRoutes() *http.ServeMux {
 	apiMux.HandleFunc("/update-user-setting", JwtMiddleware(UpdateUserSettings))
 
 	apiMux.HandleFunc("/ws/dashboard", RecoverMiddleware(routine.ServeWs))
+	apiMux.HandleFunc("/ws/market", RecoverMiddleware(routine.ServeMarketWs))
+
 	apiMux.HandleFunc("/migrate-passwords", RecoverMiddleware(PasswordMigration))
 	apiMux.HandleFunc("/migrate-news", RecoverMiddleware(NewsMigration))
+	apiMux.HandleFunc("/update-sentiment-ema", RecoverMiddleware(UpdateSentimentEMA))
 	// Add more handlers here
 
 	return apiMux

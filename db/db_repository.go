@@ -2,8 +2,10 @@ package db
 
 import (
 	"fmt"
-	"gorm.io/gorm"
+	"time"
 	"trading_platform_backend/orm"
+
+	"gorm.io/gorm"
 )
 
 func GetAllStocks() []orm.Stocks {
@@ -86,4 +88,52 @@ func GetStockWatchlistAndStockTickerByUserId(userId int64) []map[string]interfac
 		Where("stock_watchlist.user_id = ? and is_active = true", userId).
 		Find(&stockWatchlist)
 	return stockWatchlist
+}
+
+func GetLatestNewsArticles(limit int) []orm.NewsArticles {
+	var newsArticles []orm.NewsArticles
+	DB.Order("publication_time desc").Limit(limit).Find(&newsArticles)
+	return newsArticles
+}
+
+func GetStockById(stockId int64) orm.Stocks {
+	var stock orm.Stocks
+	DB.Find(&stock, stockId)
+	return stock
+}
+
+func GetLatestNewsArticlesByStock(stockId int64, limit int) []orm.NewsArticles {
+	var newsArticles []orm.NewsArticles
+	stock := GetStockById(stockId)
+	if stock.StockID == 0 {
+		return newsArticles
+	}
+	DB.Where("ticker = ?", stock.Ticker).Order("publication_time desc").Limit(limit).Find(&newsArticles)
+	return newsArticles
+}
+
+func GetLatestNewsArticlesByStockWithPagination(stockId int64, limit int, offset int) []orm.NewsArticles {
+	var newsArticles []orm.NewsArticles
+	stock := GetStockById(stockId)
+	if stock.StockID == 0 {
+		return newsArticles
+	}
+	DB.Where("ticker = ?", stock.Ticker).Order("publication_time desc").Limit(limit).Offset(offset).Find(&newsArticles)
+	return newsArticles
+}
+
+func GetSentimentDataForStock(stockId int64, days int) []orm.NewsArticles {
+	var newsArticles []orm.NewsArticles
+	stock := GetStockById(stockId)
+	if stock.StockID == 0 {
+		return newsArticles
+	}
+
+	// Calculate the date from 'days' ago
+	cutoffDate := time.Now().AddDate(0, 0, -days)
+
+	DB.Where("ticker = ? AND publication_time >= ?", stock.Ticker, cutoffDate).
+		Order("publication_time asc").
+		Find(&newsArticles)
+	return newsArticles
 }

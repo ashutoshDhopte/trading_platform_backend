@@ -2,12 +2,13 @@ package routine
 
 import (
 	"fmt"
-	"gorm.io/gorm/clause"
 	"math/rand"
 	"sync"
 	"time"
 	"trading_platform_backend/db"
 	"trading_platform_backend/orm"
+
+	"gorm.io/gorm/clause"
 )
 
 type StockPriceGenerator struct {
@@ -65,7 +66,9 @@ func startGeneratorLoop() {
 			fmt.Println(err)
 		}
 
+		// Broadcast to both dashboard and market WebSocket hubs
 		WsHub.Broadcast <- ""
+		MarketWsHub.Broadcast <- ""
 
 	}
 }

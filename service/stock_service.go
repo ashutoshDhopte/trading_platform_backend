@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Finnhub-Stock-API/finnhub-go/v2"
-	"github.com/joho/godotenv"
-	"gorm.io/gorm"
 	"io"
 	"net/http"
 	"os"
@@ -17,6 +14,10 @@ import (
 	finnhub2 "trading_platform_backend/external_client"
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
+
+	"github.com/Finnhub-Stock-API/finnhub-go/v2"
+	"github.com/joho/godotenv"
+	"gorm.io/gorm"
 )
 
 func NewsMigration() {
@@ -39,6 +40,7 @@ func NewsMigration() {
 				newsArticle := orm.NewsArticles{
 					Ticker:          stocks[i].Ticker,
 					ArticleTitle:    news.GetHeadline(),
+					ArticleSummary:  news.GetSummary(),
 					ArticleURL:      news.GetUrl(),
 					PublicationTime: time.Unix(news.GetDatetime(), 0),
 				}
@@ -51,18 +53,17 @@ func NewsMigration() {
 				panic(err)
 			}
 
-			totalSentimentScore := float32(0)
-
 			for _, sentiment := range sentimentResponses {
 				newsArticleMap[sentiment.ArticleTitle].SentimentScore = sentiment.Score
-				//err := db.DB.Create(newsArticleMap[sentiment.ArticleTitle]).Error
-				//if err != nil {
-				//	panic(err)
-				//}
-				totalSentimentScore += sentiment.Score
+				err := db.DB.Create(newsArticleMap[sentiment.ArticleTitle]).Error
+				if err != nil {
+					panic(err)
+				}
 			}
 
-			stocks[i].OverallSentimentScore = totalSentimentScore / float32(len(sentimentResponses))
+			// Calculate 14-day EMA for sentiment
+			emaScore := calculateSentimentEMA(stocks[i].StockID, 14)
+			stocks[i].OverallSentimentScore = emaScore
 
 			err = tx.Model(&stocks[i]).Select("overall_sentiment_score").Updates(&stocks[i]).Error
 			if err != nil {
@@ -75,6 +76,49 @@ func NewsMigration() {
 
 	if err != nil {
 		panic(err)
+	}
+}
+
+// calculateSentimentEMA calculates the Exponential Moving Average for sentiment scores
+func calculateSentimentEMA(stockId int64, days int) float32 {
+	// Get sentiment data for the specified number of days
+	sentimentData := db.GetSentimentDataForStock(stockId, days)
+
+	if len(sentimentData) == 0 {
+		return 0.0
+	}
+
+	// Calculate the multiplier for EMA (2 / (n + 1) where n = days)
+	multiplier := 2.0 / float64(days+1)
+
+	// Start with the first sentiment score as the initial EMA
+	ema := float64(sentimentData[0].SentimentScore)
+
+	// Calculate EMA for the remaining data points
+	for i := 1; i < len(sentimentData); i++ {
+		currentSentiment := float64(sentimentData[i].SentimentScore)
+		ema = (currentSentiment * multiplier) + (ema * (1 - multiplier))
+	}
+
+	return float32(ema)
+}
+
+// UpdateSentimentEMA updates the sentiment EMA for all stocks
+func UpdateSentimentEMA() {
+	stocks := db.GetAllStocks()
+
+	for _, stock := range stocks {
+		emaScore := calculateSentimentEMA(stock.StockID, 14)
+
+		err := db.DB.Model(&stock).Select("overall_sentiment_score").Updates(map[string]interface{}{
+			"overall_sentiment_score": emaScore,
+		}).Error
+
+		if err != nil {
+			fmt.Printf("Error updating sentiment EMA for stock %s: %v\n", stock.Ticker, err)
+		} else {
+			fmt.Printf("Updated sentiment EMA for %s: %.4f\n", stock.Ticker, emaScore)
+		}
 	}
 }
 
