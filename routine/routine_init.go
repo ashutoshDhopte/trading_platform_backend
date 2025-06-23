@@ -4,4 +4,5 @@ func InitRoutines() {
 	initWebSocket()
 	initMarketWebSocket()
 	initStockPriceGenerator()
+	initNewsFetchRoutine()
 }

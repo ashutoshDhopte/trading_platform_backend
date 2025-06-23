@@ -7,11 +7,12 @@ type ApiResponse struct {
 }
 
 type SentimentRequest struct {
-	ArticleTitle   string "json:\"articleTitle\""
-	ArticleSummary string "json:\"articleSummary\""
+	FinnhubNewsID  string `json:"finnhub_news_id"`
+	ArticleTitle   string `json:"articleTitle"`
+	ArticleSummary string `json:"articleSummary"`
 }
 
 type SentimentResponse struct {
-	ArticleTitle string  "json:\"articleTitle\""
-	Score        float32 "json:\"score\""
+	FinnhubNewsID string  `json:"finnhub_news_id"`
+	Score         float32 `json:"score"`
 }

@@ -15,7 +15,6 @@ import (
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
 
-	"github.com/Finnhub-Stock-API/finnhub-go/v2"
 	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
@@ -27,42 +26,62 @@ func NewsMigration() {
 		stocks := db.GetAllStocks()
 
 		for i, _ := range stocks {
-			newsArr := finnhub2.FetchNewsFromFinnhubMigration(stocks[i].Ticker)
+			// For migration, fetch a wide date range
+			newsArr := finnhub2.FetchNewsFromFinnhub(stocks[i].Ticker, "2025-03-01", "2025-06-21")
 
 			if len(newsArr) == 0 {
 				continue
 			}
 
 			newsArticleMap := make(map[string]*orm.NewsArticles)
+			var sentimentReqs []model.SentimentRequest
 
 			for _, news := range newsArr {
+				newsID := strconv.FormatInt(news.GetId(), 10)
+				var count int64
+				db.DB.Model(&orm.NewsArticles{}).Where("finnhub_news_id = ?", newsID).Count(&count)
+				if count > 0 {
+					continue
+				}
 
 				newsArticle := orm.NewsArticles{
 					Ticker:          stocks[i].Ticker,
+					FinnhubNewsID:   newsID,
 					ArticleTitle:    news.GetHeadline(),
 					ArticleSummary:  news.GetSummary(),
 					ArticleURL:      news.GetUrl(),
 					PublicationTime: time.Unix(news.GetDatetime(), 0),
 				}
-
-				newsArticleMap[newsArticle.ArticleTitle] = &newsArticle
+				newsArticleMap[newsID] = &newsArticle
+				sentimentReqs = append(sentimentReqs, model.SentimentRequest{
+					FinnhubNewsID:  newsID,
+					ArticleTitle:   news.GetHeadline(),
+					ArticleSummary: news.GetSummary(),
+				})
 			}
 
-			sentimentResponses, err := getArticlesSentiment(newsArr)
-			if err != nil {
-				panic(err)
+			if len(newsArticleMap) == 0 {
+				continue
 			}
 
-			for _, sentiment := range sentimentResponses {
-				newsArticleMap[sentiment.ArticleTitle].SentimentScore = sentiment.Score
-				err := db.DB.Create(newsArticleMap[sentiment.ArticleTitle]).Error
+			sentimentResponses, err := GetArticlesSentiment(sentimentReqs)
+			if err == nil {
+				for _, sentiment := range sentimentResponses {
+					if article, ok := newsArticleMap[sentiment.FinnhubNewsID]; ok {
+						article.SentimentScore = sentiment.Score
+					}
+				}
+			}
+
+			for _, article := range newsArticleMap {
+				err := db.DB.Create(article).Error
 				if err != nil {
 					panic(err)
 				}
 			}
 
 			// Calculate 14-day EMA for sentiment
-			emaScore := calculateSentimentEMA(stocks[i].StockID, 14)
+			emaScore := CalculateSentimentEMA(stocks[i].StockID, 14)
 			stocks[i].OverallSentimentScore = emaScore
 
 			err = tx.Model(&stocks[i]).Select("overall_sentiment_score").Updates(&stocks[i]).Error
@@ -79,8 +98,8 @@ func NewsMigration() {
 	}
 }
 
-// calculateSentimentEMA calculates the Exponential Moving Average for sentiment scores
-func calculateSentimentEMA(stockId int64, days int) float32 {
+// CalculateSentimentEMA calculates the Exponential Moving Average for sentiment scores
+func CalculateSentimentEMA(stockId int64, days int) float32 {
 	// Get sentiment data for the specified number of days
 	sentimentData := db.GetSentimentDataForStock(stockId, days)
 
@@ -103,42 +122,14 @@ func calculateSentimentEMA(stockId int64, days int) float32 {
 	return float32(ema)
 }
 
-// UpdateSentimentEMA updates the sentiment EMA for all stocks
-func UpdateSentimentEMA() {
-	stocks := db.GetAllStocks()
-
-	for _, stock := range stocks {
-		emaScore := calculateSentimentEMA(stock.StockID, 14)
-
-		err := db.DB.Model(&stock).Select("overall_sentiment_score").Updates(map[string]interface{}{
-			"overall_sentiment_score": emaScore,
-		}).Error
-
-		if err != nil {
-			fmt.Printf("Error updating sentiment EMA for stock %s: %v\n", stock.Ticker, err)
-		} else {
-			fmt.Printf("Updated sentiment EMA for %s: %.4f\n", stock.Ticker, emaScore)
-		}
-	}
-}
-
-func getArticlesSentiment(companyNewsList []finnhub.CompanyNews) ([]model.SentimentResponse, error) {
-
+// GetArticlesSentiment calls the sentiment analysis API for a batch of articles
+func GetArticlesSentiment(sentimentReqList []model.SentimentRequest) ([]model.SentimentResponse, error) {
 	_ = godotenv.Load()
 	sentimentAnalysisModelUrl := os.Getenv("SENTIMENT_ANALYSIS_MODEL_URL")
 	url := sentimentAnalysisModelUrl + "/sentiment/analyze"
 	fmt.Println("Calling API endpoint:", url)
 
-	sentimentReqList := make([]model.SentimentRequest, 0)
 	var sentimentResponses []model.SentimentResponse
-
-	for _, news := range companyNewsList {
-
-		sentimentReqList = append(sentimentReqList, model.SentimentRequest{
-			ArticleTitle:   news.GetHeadline(),
-			ArticleSummary: news.GetSummary(),
-		})
-	}
 
 	jsonData, err1 := json.Marshal(sentimentReqList)
 	if err1 != nil {

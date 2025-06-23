@@ -5,6 +5,7 @@ import "time"
 type NewsArticles struct {
 	NewsArticleID   int `gorm:"primary_key"`
 	Ticker          string
+	FinnhubNewsID   string
 	ArticleTitle    string
 	ArticleSummary  string
 	ArticleURL      string

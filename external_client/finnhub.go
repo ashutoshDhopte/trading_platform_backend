@@ -2,10 +2,11 @@ package external_client
 
 import (
 	"context"
-	"github.com/Finnhub-Stock-API/finnhub-go/v2"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
+
+	"github.com/Finnhub-Stock-API/finnhub-go/v2"
+	"github.com/joho/godotenv"
 )
 
 func initFinnhubClient() {
@@ -16,13 +17,13 @@ func initFinnhubClient() {
 	client.finnhubClient = finnhub.NewAPIClient(cfg).DefaultApi
 }
 
-func FetchNewsFromFinnhubMigration(ticker string) []finnhub.CompanyNews {
+func FetchNewsFromFinnhub(ticker string, from string, to string) []finnhub.CompanyNews {
 
 	res, _, err := client.finnhubClient.
 		CompanyNews(context.Background()).
 		Symbol(ticker).
-		From("2025-03-01").
-		To("2025-06-21").
+		From(from).
+		To(to).
 		Execute()
 
 	if err != nil {

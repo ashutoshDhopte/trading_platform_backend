@@ -57,7 +57,6 @@ func registerRoutes() *http.ServeMux {
 
 	apiMux.HandleFunc("/migrate-passwords", RecoverMiddleware(PasswordMigration))
 	apiMux.HandleFunc("/migrate-news", RecoverMiddleware(NewsMigration))
-	apiMux.HandleFunc("/update-sentiment-ema", RecoverMiddleware(UpdateSentimentEMA))
 	// Add more handlers here
 
 	return apiMux
