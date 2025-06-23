@@ -1,6 +1,8 @@
 package routine
 
 import (
+	"fmt"
+	"gorm.io/gorm/clause"
 	"math/rand"
 	"sync"
 	"time"
@@ -54,7 +56,14 @@ func startGeneratorLoop() {
 			stocksMap[generator.Ticker].CurrentPriceCents = price
 		}
 
-		db.DB.Model(&stocks).Select("current_price_cents").Updates(&stocks)
+		err := db.DB.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "ticker"}},                         // The column to check for conflicts.
+			DoUpdates: clause.AssignmentColumns([]string{"current_price_cents"}), // The column to update.
+		}).Create(&stocks).Error
+
+		if err != nil {
+			fmt.Println(err)
+		}
 
 		WsHub.Broadcast <- ""
 
