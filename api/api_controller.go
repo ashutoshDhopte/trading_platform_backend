@@ -491,3 +491,24 @@ func GetStockNews(w http.ResponseWriter, r *http.Request) {
 	news := service.GetStockNewsWithPagination(stockID, page)
 	response = getSuccessApiResponse(news)
 }
+
+func MigrateStockOHLCV(w http.ResponseWriter, r *http.Request) {
+
+	var response model.ApiResponse
+
+	//LIFO
+	defer func() {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(response)
+		if err != nil {
+			fmt.Println(err.Error())
+			panic(err)
+		}
+	}()
+
+	err := service.MigrateStockOHLCV("GOOGL")
+	if err != nil {
+		response = getErrorApiResponse(err.Error())
+	}
+	response = getSuccessApiResponse("")
+}

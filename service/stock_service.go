@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
@@ -164,4 +165,163 @@ func GetArticlesSentiment(sentimentReqList []model.SentimentRequest) ([]model.Se
 	}
 
 	return sentimentResponses, nil
+}
+
+func MigrateStockOHLCV(ticker string) error {
+
+	// CandleData represents the open, high, low, close, and volume for a specific timestamp.
+	type CandleData struct {
+		Open   string `json:"1. open"`
+		High   string `json:"2. high"`
+		Low    string `json:"3. low"`
+		Close  string `json:"4. close"`
+		Volume string `json:"5. volume"`
+	}
+
+	// TimeSeriesData represents the nested structure for a specific time series (e.g., 1-minute data).
+	// The key (e.g., "2020-06-30 19:44:00") is a string, and the value is CandleData.
+	type TimeSeriesData map[string]CandleData
+
+	// AlphaVantageResponse represents the top-level structure of your JSON data.
+	type AlphaVantageResponse struct {
+		MetaData       map[string]interface{} `json:"Meta Data"`
+		TimeSeries1min TimeSeriesData         `json:"Time Series (1min)"`
+	}
+
+	_ = godotenv.Load()
+	alphaVintageToken := os.Getenv("ALPHA_VINTAGE_TOKEN")
+	alphaVantageUrl := "https://alphavantage.co/query"
+
+	apiCall := func(fullURL string) (AlphaVantageResponse, error) {
+
+		fmt.Println("Calling API endpoint:", fullURL)
+
+		var data AlphaVantageResponse
+
+		resp, err2 := http.Get(fullURL)
+		if err2 != nil {
+			fmt.Printf("Error sending request: %s\n", err2)
+			return data, err2
+		}
+
+		defer resp.Body.Close()
+
+		fmt.Printf("Received response with status code: %d\n", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			fmt.Printf("API call failed with status code: %d\n", resp.StatusCode)
+			return data, errors.New("API call failed with status code: " + strconv.Itoa(resp.StatusCode))
+		}
+
+		responseBody, err3 := io.ReadAll(resp.Body)
+		if err3 != nil {
+			fmt.Printf("Error reading response body: %s\n", err3)
+			return data, err3
+		}
+
+		err3 = json.Unmarshal(responseBody, &data)
+		if err3 != nil {
+			fmt.Printf("Error unmarshaling response JSON: %s\n", err3)
+			return data, err3
+		}
+
+		if len(data.TimeSeries1min) == 0 {
+			fmt.Println(string(responseBody))
+			return data, errors.New(string(responseBody))
+		}
+
+		return data, nil
+	}
+
+	currentTime := time.Now()
+
+	for i := 12; i <= 60; i++ {
+
+		err := db.DB.Transaction(func(tx *gorm.DB) error {
+
+			timeStr := currentTime.AddDate(0, -i, 0).Format("2006-01")
+
+			fmt.Println(timeStr)
+
+			params := url.Values{}
+			params.Add("function", "TIME_SERIES_INTRADAY")
+			params.Add("symbol", ticker)
+			params.Add("interval", "1min")
+			params.Add("outputsize", "full")
+			params.Add("apikey", alphaVintageToken)
+			params.Add("month", timeStr)
+			// Encode the parameters into a query string
+			queryString := params.Encode()
+
+			// Construct the full URL
+			fullURL := fmt.Sprintf("%s?%s", alphaVantageUrl, queryString)
+
+			data, err := apiCall(fullURL)
+			if err != nil {
+				return err
+			}
+
+			if len(data.TimeSeries1min) > 0 {
+				for timestamp, candle := range data.TimeSeries1min {
+					fmt.Println(timestamp)
+
+					stockOHLCV := orm.StockOHLCV{StockName: ticker}
+					stockOHLCV.Timestamp, err = time.Parse("2006-01-02 15:04:05", timestamp)
+					parsed, err := strconv.ParseFloat(candle.Open, 32)
+					if err == nil {
+						stockOHLCV.Open = float32(parsed)
+					} else {
+						return err
+					}
+
+					parsed, err = strconv.ParseFloat(candle.Open, 32)
+					if err == nil {
+						stockOHLCV.Open = float32(parsed)
+					} else {
+						return err
+					}
+
+					parsed, err = strconv.ParseFloat(candle.High, 32)
+					if err == nil {
+						stockOHLCV.High = float32(parsed)
+					} else {
+						return err
+					}
+
+					parsed, err = strconv.ParseFloat(candle.Low, 32)
+					if err == nil {
+						stockOHLCV.Low = float32(parsed)
+					} else {
+						return err
+					}
+
+					parsed, err = strconv.ParseFloat(candle.Close, 32)
+					if err == nil {
+						stockOHLCV.Close = float32(parsed)
+					} else {
+						return err
+					}
+
+					parsedInt, errInt := strconv.ParseInt(candle.Volume, 10, 32)
+					if errInt == nil {
+						stockOHLCV.Volume = int32(parsedInt)
+					} else {
+						return errInt
+					}
+
+					errTx := tx.Create(&stockOHLCV).Error
+					if errTx != nil {
+						return errTx
+					}
+				}
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
