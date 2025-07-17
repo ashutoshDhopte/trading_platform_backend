@@ -1,10 +1,13 @@
 # Trading Platform Simulator - Go Backend
 
+[Try the Live Application](https://trade-sim-liard.vercel.app/)
+
+<img width="894" height="657" alt="Screenshot 2025-06-29 at 03 03 53" src="https://github.com/user-attachments/assets/d392507e-014b-4d9b-898c-2f4d4e84fb32" />
+
+
 This repository contains the primary backend service for the Full-Stack Trading Platform Simulator. What started as a simple trading simulator has evolved into a data-driven market analysis tool.
 
 This service, written in Go (Golang), orchestrates a polyglot microservices architecture. It handles secure user authentication, portfolio management, and simulated trading via a REST API. Additionally, it runs a real-time data pipeline to fetch market news from Finnhub, calls a separate Python service for AI sentiment analysis, and broadcasts all data updates to clients via WebSockets.
-
-[Try the Live Application](https://trade-sim-liard.vercel.app/)
 
 ## Key Features
 
