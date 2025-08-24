@@ -58,6 +58,8 @@ func registerRoutes() *http.ServeMux {
 	//apiMux.HandleFunc("/migrate-passwords", RecoverMiddleware(PasswordMigration))
 	//apiMux.HandleFunc("/migrate-news", RecoverMiddleware(NewsMigration))
 	apiMux.HandleFunc("/migrate-stock-ohlcv", RecoverMiddleware(MigrateStockOHLCV))
+
+	apiMux.HandleFunc("/internal/broadcast", RecoverMiddleware(SendLiveSocialTradingFeed))
 	// Add more handlers here
 
 	return apiMux

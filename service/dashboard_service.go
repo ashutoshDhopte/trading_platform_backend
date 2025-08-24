@@ -3,13 +3,14 @@ package service
 import (
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"math"
 	"time"
 	"trading_platform_backend/db"
 	"trading_platform_backend/model"
 	"trading_platform_backend/orm"
 	"trading_platform_backend/util"
+
+	"gorm.io/gorm"
 )
 
 func GetDashboardData(userId int64) model.DashboardModel {
@@ -361,5 +362,10 @@ func DeleteFromWatchlist(userId int32, stockId int32) error {
 		return err
 	}
 
+	return nil
+}
+
+func SendLiveSocialTradingFeed(content string) error {
+	fmt.Println(content)
 	return nil
 }
