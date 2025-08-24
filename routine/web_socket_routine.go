@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"trading_platform_backend/model"
 	"trading_platform_backend/service"
 
 	"github.com/gorilla/websocket"
@@ -32,6 +33,7 @@ type Client struct {
 type Hub struct {
 	clients    map[int64]*websocket.Conn
 	Broadcast  chan string
+	Social     chan model.SocialChanMessage
 	register   chan Client
 	unregister chan int64
 	mutex      sync.Mutex
@@ -50,7 +52,12 @@ func (h *Hub) Run() {
 
 			dashboard := service.GetDashboardData(client.UserID)
 
-			data, err := json.Marshal(dashboard)
+			wsMessage := model.WebSocketMessage{
+				EventType: "stockPrice",
+				Content:   dashboard,
+			}
+
+			data, err := json.Marshal(wsMessage)
 			if err != nil {
 				log.Printf("Error marshalling stock data: %v", err)
 				continue
@@ -70,6 +77,35 @@ func (h *Hub) Run() {
 			}
 			h.mutex.Unlock()
 
+		case socialMessage := <-h.Social:
+			// Broadcast a message to all registered clients.
+			h.mutex.Lock()
+
+			wsMessage := model.WebSocketMessage{
+				EventType: "social",
+				Content:   socialMessage.Message,
+			}
+
+			data, err := json.Marshal(wsMessage)
+			if err != nil {
+				log.Printf("Error marshalling stock data: %v", err)
+				continue
+			}
+
+			for userId, conn := range h.clients {
+
+				if userId == socialMessage.UserID {
+					continue
+				}
+
+				if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+					log.Printf("Write error: %v. Unregistering client.", err)
+					// If there's an error writing (e.g., connection closed), unregister them.
+					go func(u int64) { h.unregister <- u }(userId)
+				}
+			}
+			h.mutex.Unlock()
+
 		case _ = <-h.Broadcast:
 			// Broadcast a message to all registered clients.
 			h.mutex.Lock()
@@ -78,7 +114,12 @@ func (h *Hub) Run() {
 
 				dashboard := service.GetDashboardData(userId)
 
-				data, err := json.Marshal(dashboard)
+				wsMessage := model.WebSocketMessage{
+					EventType: "stockPrice",
+					Content:   dashboard,
+				}
+
+				data, err := json.Marshal(wsMessage)
 				if err != nil {
 					log.Printf("Error marshalling stock data: %v", err)
 					continue
@@ -151,6 +192,7 @@ func initWebSocket() {
 	// Create and run the WebSocket hub.
 	WsHub = Hub{
 		Broadcast:  make(chan string),
+		Social:     make(chan model.SocialChanMessage),
 		register:   make(chan Client),
 		unregister: make(chan int64),
 		clients:    make(map[int64]*websocket.Conn),

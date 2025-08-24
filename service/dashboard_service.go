@@ -365,7 +365,32 @@ func DeleteFromWatchlist(userId int32, stockId int32) error {
 	return nil
 }
 
-func SendLiveSocialTradingFeed(content string) error {
-	fmt.Println(content)
-	return nil
+func SendLiveSocialTradingFeed(content model.After) (model.SocialChanMessage, error) {
+
+	user := db.GetUserById(int64(content.UserID))
+	stock := db.GetStockById(int64(content.StockID))
+
+	var tradeType string
+	if content.TradeType == util.TradeTypeBuy {
+		tradeType = "bought"
+	} else {
+		tradeType = "sold"
+	}
+
+	feedMessage := fmt.Sprintf("%s just %s %d shares of %s at $%.2f!",
+		user.Username,
+		tradeType,
+		content.Quantity,
+		stock.Ticker,
+		util.ConvertCentsToDollars(int64(content.PricePerShareCents)),
+	)
+
+	fmt.Println(feedMessage)
+
+	socialMessage := model.SocialChanMessage{
+		UserID:  user.UserID,
+		Message: feedMessage,
+	}
+
+	return socialMessage, nil
 }

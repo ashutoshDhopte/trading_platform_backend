@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"trading_platform_backend/model"
+	"trading_platform_backend/routine"
 	"trading_platform_backend/service"
 )
 
@@ -527,15 +528,17 @@ func SendLiveSocialTradingFeed(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	var payload map[string]interface{}
+	var payload model.After
 	err := json.NewDecoder(r.Body).Decode(&payload)
 	if err != nil {
 		response = getErrorApiResponse("Invalid payload")
 		return
 	}
 
-	err = service.SendLiveSocialTradingFeed(payload["content"].(string))
+	socialMessage, err := service.SendLiveSocialTradingFeed(payload)
 	if err != nil {
 		return
 	}
+
+	routine.WsHub.Social <- socialMessage
 }
