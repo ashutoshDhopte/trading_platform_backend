@@ -77,8 +77,32 @@ Follow these instructions to get the backend server running on your local machin
     ```
     This will start a PostgreSQL server on `localhost:5432`.
 
+    Update Aug 23 2025: Added new services Kafka, Zookeeper and Debezium Connect for CDC (Change Data Capture) implementation.
+
+
 3.  **Run Database Schema Setup**
     Connect to the running PostgreSQL instance using a database tool (like DBeaver or `psql`) and run the SQL script found at `/postgres/create.sql` to set up the necessary tables and initial data.
+
+
+4. **Run the following command to set up Debezium CDC,to capture changes in "orders" table.**
+
+    ```bash
+   curl -i -X POST -H "Accept:application/json" -H "Content-Type:application/json" localhost:8083/connectors/ -d '{
+    "name": "trading-transactions-connector",
+    "config": {
+      "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+      "database.hostname": "db",
+      "database.port": "5432",
+      "database.user": "trading_user",
+      "database.password": "trading_password",
+      "database.dbname": "trading_db",
+      "database.server.name": "tradingplatform",
+      "topic.prefix": "tradingplatform",
+      "table.include.list": "public.orders",
+      "plugin.name": "pgoutput"
+    }
+    }'
+   ```
 
 4.  **Configure Environment Variables**
     Create a `.env` file in the project's root directory. You will need API keys from [Finnhub.io](https://finnhub.io/) and a self-generated JWT secret (`openssl rand -base64 32`).
