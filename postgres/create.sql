@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS stocks (
     max_price_generator_cents BIGINT,                   -- For V2: upper bound for dynamic price generator
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    overall_sentiment_score INTEGER NOT NULL DEAFULT 0
+    overall_sentiment_score INTEGER NOT NULL DEFAULT 0
 );
 
 -- Table for User's Portfolio Holdings (Current Stock Positions)
