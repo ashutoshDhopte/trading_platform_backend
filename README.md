@@ -2,6 +2,8 @@
 
 [Try the Live Application](https://trade-sim-liard.vercel.app/)
 
+Check out [stage branch](https://github.com/ashutoshDhopte/trading_platform_backend/tree/stage) for more information on CDC and Debezium integration.
+
 <img width="894" height="657" alt="Screenshot 2025-06-29 at 03 03 53" src="https://github.com/user-attachments/assets/d392507e-014b-4d9b-898c-2f4d4e84fb32" />
 
 
